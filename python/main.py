@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from base import Base
+from base.base import Base
 
 
 class SimpleSquare(Base):
+
     def __init__(self, *args, **kwargs):
         super(SimpleSquare, self).__init__(*args, **kwargs)
 

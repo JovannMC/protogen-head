@@ -1,0 +1,1 @@
+sudo python3 ./main.py --led-rows=64 --led-cols=32 --led-gpio-mapping=adafruit-hat --led-slowdown-gpio=1 --led-chain=2 --led-pwm-lsb-nanoseconds=130 --led-show-refresh
