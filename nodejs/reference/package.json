@@ -1,0 +1,21 @@
+{
+  "name": "protogen-head",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "prettier": "^3.5.3",
+    "rpi-led-matrix": "^1.15.0"
+  },
+  "trustedDependencies": [
+    "rpi-led-matrix"
+  ]
+}
