@@ -6,6 +6,8 @@
     --color-tertiary: var(--tertiary);
 
     --background-color-body: var(--body);
+
+    --font-inter: "Inter", sans-serif;
 }
 
 :root {
@@ -14,6 +16,8 @@
     --tertiary: #a8a3a3;
 
     --body: #444444;
+
+    font-family: var(--font-inter);
 }
 
 body {
@@ -22,4 +26,12 @@ body {
 
 .panel {
     @apply flex flex-col items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
+}
+
+input {
+    @apply text-center text-black bg-tertiary rounded-md border-2 border-secondary focus:outline-none focus:ring-2 focus:ring-secondary
+}
+
+input::placeholder {
+    @apply text-black opacity-25;
 }
