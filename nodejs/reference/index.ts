@@ -45,6 +45,14 @@ try {
 
 	matrix.sync();
 
+	// Handle keyboard interrupt (Ctrl+C)
+	process.on("SIGINT", () => {
+        console.log("bai lmao");
+		matrix.clear();
+		matrix.sync();
+		process.exit();
+	});
+
 	await wait(999999);
 } catch (error) {
 	console.error(`${__filename} caught: `, error);
