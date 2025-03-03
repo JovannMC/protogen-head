@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: var(--primary);
+    --color-secondary: var(--secondary);
+    --color-tertiary: var(--tertiary);
+
+    --background-color-body: var(--body);
+}
+
+:root {
+    --primary: #555555;
+    --secondary: #dbd6cb;
+    --tertiary: #a8a3a3;
+
+    --body: #444444;
+}
+
+body {
+    @apply bg-body text-secondary;
+}
+
+.panel {
+    @apply flex flex-col items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
+}
