@@ -6,6 +6,7 @@ export const rows = writable(32);
 
 export const currentColor = writable("#ffffff");
 export const currentTool: Writable<Tool> = writable("pen");
+export const currentToolSize = writable(1);
 export const currentAnimation: Writable<Animation> = writable("none");
 export const currentFrame = writable(0);
 export const selectedFPS = writable(30);
