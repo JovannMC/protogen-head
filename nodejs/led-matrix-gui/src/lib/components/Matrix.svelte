@@ -43,9 +43,43 @@
 		element.style.backgroundColor = color;
 	}
 
-	function handlePixelClick(event: Event) {
-		const pixel = event.target as HTMLElement;
-		if (!pixel.classList.contains("led")) return;
+	function findNearestLedByCursor(event: MouseEvent): HTMLElement | null {
+		// Get cursor position
+		const x = event.clientX;
+		const y = event.clientY;
+
+		// Find all LED elements
+		const leds = document.querySelectorAll<HTMLElement>(".led");
+		if (!leds.length) return null;
+
+		let closestLed: HTMLElement | null = null;
+		let shortestDistance = Infinity;
+
+		// Find the LED closest to cursor position
+		leds.forEach((led) => {
+			const rect = led.getBoundingClientRect();
+			const ledCenterX = rect.left + rect.width / 2;
+			const ledCenterY = rect.top + rect.height / 2;
+
+			const distance = Math.sqrt(
+				Math.pow(x - ledCenterX, 2) + Math.pow(y - ledCenterY, 2),
+			);
+
+			if (distance < shortestDistance) {
+				shortestDistance = distance;
+				closestLed = led;
+			}
+		});
+
+		return closestLed;
+	}
+
+	function handlePixelClick(event: MouseEvent) {
+		let pixel = event.target as HTMLElement;
+		if (!pixel.classList.contains("led")) {
+			pixel = findNearestLedByCursor(event) ?? pixel;
+			if (!pixel) return;
+		}
 
 		let newColor = $currentColor;
 
@@ -75,9 +109,12 @@
 		setPixelColor(pixel, newColor);
 	}
 
-	function handleMouseDown(event: Event) {
-		const pixel = event.target as HTMLElement;
-		if (!pixel.classList.contains("led")) return;
+	function handleMouseDown(event: MouseEvent) {
+		let pixel = event.target as HTMLElement;
+		if (!pixel.classList.contains("led")) {
+			pixel = findNearestLedByCursor(event) ?? pixel;
+			if (!pixel) return;
+		}
 
 		isDragging = true;
 
@@ -97,11 +134,14 @@
 		}
 	}
 
-	function handleMouseMove(event: Event) {
+	function handleMouseMove(event: MouseEvent) {
 		if (!isDragging) return;
 
-		const pixel = event.target as HTMLElement;
-		if (!pixel.classList.contains("led")) return;
+		let pixel = event.target as HTMLElement;
+		if (!pixel.classList.contains("led")) {
+			pixel = findNearestLedByCursor(event) ?? pixel;
+			if (!pixel) return;
+		}
 
 		const coords = getPixelCoordinates(pixel);
 		if (!coords) return;
