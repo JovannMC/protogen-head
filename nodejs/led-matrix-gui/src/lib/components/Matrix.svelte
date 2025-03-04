@@ -14,6 +14,9 @@
 
 	// TODO: implement currentToolSize into drawing tools
 
+	// makes sure tools only affect the current matrix instance
+	let matrixContainer: HTMLElement;
+
 	let isDragging = false;
 	let tool = $currentTool;
 	let startPixel: { row: number; col: number } | null = null;
@@ -36,7 +39,9 @@
 	}
 
 	function getPixelFromCoords(row: number, col: number): HTMLElement | null {
-		return document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+		return matrixContainer.querySelector(
+			`[data-row="${row}"][data-col="${col}"]`,
+		);
 	}
 
 	function setPixelColor(element: HTMLElement, color: string) {
@@ -48,14 +53,12 @@
 		const x = event.clientX;
 		const y = event.clientY;
 
-		// Find all LED elements
-		const leds = document.querySelectorAll<HTMLElement>(".led");
+		const leds = matrixContainer.querySelectorAll<HTMLElement>(".led");
 		if (!leds.length) return null;
 
 		let closestLed: HTMLElement | null = null;
 		let shortestDistance = Infinity;
 
-		// Find the LED closest to cursor position
 		leds.forEach((led) => {
 			const rect = led.getBoundingClientRect();
 			const ledCenterX = rect.left + rect.width / 2;
@@ -74,10 +77,11 @@
 		return closestLed;
 	}
 
-	function handlePixelClick(event: MouseEvent) {
+	function handlePixelClick(event: MouseEvent | KeyboardEvent) {
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
-			pixel = findNearestLedByCursor(event) ?? pixel;
+			// won't ever be a keyboard event
+			pixel = findNearestLedByCursor(event as MouseEvent) ?? pixel;
 			if (!pixel) return;
 		}
 
@@ -426,6 +430,7 @@
 </script>
 
 <div
+	bind:this={matrixContainer}
 	class="grid gap-1"
 	style="grid-template-columns: repeat({$columns}, minmax(0, 1fr)); grid-template-rows: repeat({$rows}, minmax(0, 1fr));"
 	onmouseup={handleMouseUp}
