@@ -53,3 +53,7 @@ input[type="number"]::placeholder {
 .hoverable-lg {
 	@apply cursor-pointer duration-200 hover:scale-[1.15] focus:!outline-none active:scale-[0.975];
 }
+
+.selected {
+	@apply brightness-85;
+}

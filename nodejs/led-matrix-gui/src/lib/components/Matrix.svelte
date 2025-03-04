@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { columns, rows, color } from "$lib/stores";
+	import { columns, rows, currentColor } from "$lib/stores";
 
 	let isDragging = false;
 
 	function handlePixelClick(event: Event) {
 		const pixel = event.target as HTMLButtonElement;
-		let newColor = $color;
+		let newColor = $currentColor;
 
 		// TODO handle transparent better (add class/id probably)
-		if ($color === "transparent") {
+		if ($currentColor === "transparent") {
 			const computedStyle = getComputedStyle(document.documentElement);
 			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
 		}

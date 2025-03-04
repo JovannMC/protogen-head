@@ -1,18 +1,6 @@
 <script lang="ts">
-	import { color as colorStore } from "$lib/stores";
+	import { currentColor as colorStore, defaultColors } from "$lib/stores";
 	import Icon from "@iconify/svelte";
-
-	const colors = [
-		"#FF0000",
-		"#00FF00",
-		"#0000FF",
-		"#FFFF00",
-		"#FF00FF",
-		"#00FFFF",
-		"#000000",
-		"#FFFFFF",
-		"transparent",
-	];
 
 	function handleColorChange(event: Event) {
 		const color = (event.target as HTMLInputElement).id;
@@ -52,12 +40,12 @@
 		<input
 			type="color"
 			id="picker"
-			class="w-10 h-11 hoverable border-2 rounded-lg"
+			class="w-10 h-11 hoverable p-[2px] rounded-lg bg-secondary"
 			oninput={handlePickerChange}
 		/>
 
 		<div class="grid grid-cols-2 gap-2">
-			{#each colors as color}
+			{#each defaultColors as color}
 				<button
 					class="w-4 h-4 hoverable-lg {color === 'transparent'
 						? 'checkered-bg'
