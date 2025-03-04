@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { columns, rows, currentColor, currentTool, currentToolSize } from "$lib/stores";
+	import {
+		columns,
+		rows,
+		currentColor,
+		currentTool,
+		currentToolSize,
+	} from "$lib/stores";
 
 	// i'll be honest, i used ai for this because i wouldn't be able to figure this out because i'm dumb
 	// not like anyone else is gonna use it so.. yeah. if it works it works ig
@@ -385,6 +391,7 @@
 	onmouseup={handleMouseUp}
 	onmousedown={handleMouseDown}
 	onmouseleave={handleMouseUp}
+	ondragstart={(e) => e.preventDefault()}
 	role="grid"
 	tabindex="0"
 	aria-label="LED Matrix"
@@ -400,6 +407,7 @@
 				onmouseup={handleMouseUp}
 				onmousedown={handleMouseDown}
 				onmousemove={handleMouseMove}
+				ondragstart={(e) => e.preventDefault()}
 				onkeypress={(e) => e.key === "Enter" && handlePixelClick(e)}
 				draggable={false}
 			></button>
