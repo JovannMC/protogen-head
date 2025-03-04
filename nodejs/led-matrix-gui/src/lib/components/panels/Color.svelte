@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { currentColor as colorStore, defaultColors } from "$lib/stores";
 	import Icon from "@iconify/svelte";
+	import { onMount } from "svelte";
 
 	function handleColorChange(event: Event) {
 		const color = (event.target as HTMLInputElement).id;
@@ -33,6 +34,18 @@
 			(led as HTMLElement).style.backgroundColor = color;
 		});
 	}
+
+	onMount(() => {
+		colorStore.subscribe((value) => {
+			const picker = document.getElementById("picker") as HTMLInputElement;
+			picker.value = value;
+			if (value === "transparent") {
+				picker.classList.add("checkered-bg");
+			} else {
+				picker.classList.remove("checkered-bg");
+			}
+		});
+	})
 </script>
 
 <div class="panel">
