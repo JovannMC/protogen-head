@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { color as colorStore } from "$lib/stores";
+	import Icon from "@iconify/svelte";
 
 	const colors = [
 		"#FF0000",
@@ -34,6 +35,16 @@
 		console.log(`Picker color changed: ${color}`);
 		colorStore.set(color);
 	}
+
+	function clearAll() {
+		Array.from(document.getElementsByClassName("led")).forEach((led) => {
+			const computedStyle = getComputedStyle(document.documentElement);
+			const color = computedStyle
+				.getPropertyValue("--bg-tertiary")
+				.trim();
+			(led as HTMLElement).style.backgroundColor = color;
+		});
+	}
 </script>
 
 <div class="panel">
@@ -41,13 +52,14 @@
 		<input
 			type="color"
 			id="picker"
-			class="w-8 h-9"
+			class="w-10 h-11 hoverable border-2 rounded-lg"
 			oninput={handlePickerChange}
 		/>
+
 		<div class="grid grid-cols-2 gap-2">
 			{#each colors as color}
 				<button
-					class="w-4 h-4 {color === 'transparent'
+					class="w-4 h-4 hoverable-lg {color === 'transparent'
 						? 'checkered-bg'
 						: ''}"
 					id={color}
@@ -57,6 +69,14 @@
 				></button>
 			{/each}
 		</div>
+
+		<button
+			class="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center hoverable"
+			onclick={clearAll}
+			aria-label="Clear all"
+		>
+			<Icon icon="bi:trash" class="text-red-400 w-3/4 h-3/4" />
+		</button>
 	</div>
 </div>
 
