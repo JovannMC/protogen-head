@@ -19,12 +19,24 @@
 
 	let isDragging = false;
 	let tool = $currentTool;
+	let previousTool: typeof tool = $currentTool;
 	let startPixel: { row: number; col: number } | null = null;
 	let endPixel: { row: number; col: number } | null = null;
 	let originalPixelColors = new Map<string, string>();
 
 	currentTool.subscribe((value) => {
+		if (value === "picker" && tool !== "picker") {
+			previousTool = tool;
+		}
 		tool = value;
+
+		// set the selected tool
+		document
+			.querySelectorAll(".selected")
+			.forEach((el) => el.classList.remove("selected"));
+		document
+			.querySelector(`[aria-label="${value}"]`)
+			?.classList.add("selected");
 	});
 
 	function getPixelCoordinates(
@@ -96,6 +108,9 @@
 		if (tool === "picker") {
 			const pixelColor = window.getComputedStyle(pixel).backgroundColor;
 			currentColor.set(rgbToHex(pixelColor));
+
+			// Switch back to the previous tool after picking a color
+			currentTool.set(previousTool);
 			return;
 		}
 
