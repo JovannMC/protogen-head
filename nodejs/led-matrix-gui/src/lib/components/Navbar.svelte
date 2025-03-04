@@ -17,10 +17,14 @@
 
 		switch (input.id) {
 			case "panels":
-				panels.set(parseInt(input.value) || parseInt(input.placeholder));
+				panels.set(
+					parseInt(input.value) || parseInt(input.placeholder),
+				);
 				break;
 			case "cols":
-				columns.set(parseInt(input.value) || parseInt(input.placeholder));
+				columns.set(
+					parseInt(input.value) || parseInt(input.placeholder),
+				);
 				break;
 			case "rows":
 				rows.set(parseInt(input.value) || parseInt(input.placeholder));
