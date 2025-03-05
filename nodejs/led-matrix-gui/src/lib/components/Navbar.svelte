@@ -3,6 +3,8 @@
 
 	import { panels, columns, rows } from "$lib/stores";
 
+	// TODO: different cols/rows for each panel
+	
 	let previousValue = "1";
 
 	function validateInput(event: Event) {
@@ -30,6 +32,16 @@
 				rows.set(parseInt(input.value) || parseInt(input.placeholder));
 				break;
 		}
+	}
+
+	function handleImport() {
+		// TODO: use tauri/rust backend
+		console.log("Importing...");
+	}
+
+	function handleExport() {
+		// TODO: use tauri/rust backend
+		console.log("Exporting...");
 	}
 </script>
 
@@ -80,10 +92,18 @@
 			/>
 		</div>
 	</div>
-	<div class="flex items-center justify-center">
+	<div class="flex items-center justify-center gap-6">
+		<button class="flex items-center justify-center hoverable-lg" onclick={handleImport}>
+			<Icon icon="mdi:import" width={24} class="text-secondary" />
+		</button>
+
+		<button class="flex items-center justify-center hoverable-lg" onclick={handleExport}>
+			<Icon icon="mdi:export" width={24} class="text-secondary" />
+		</button>
+
 		<a
 			href="/settings"
-			class="hover:rotate-180 transform transition-transform duration-300"
+			class="hover:rotate-180 transform transition-transform duration-300 hoverable-lg"
 		>
 			<Icon icon="mdi:settings" width={24} />
 		</a>

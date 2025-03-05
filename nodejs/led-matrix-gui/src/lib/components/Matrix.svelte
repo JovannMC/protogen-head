@@ -5,6 +5,7 @@
 		currentColor,
 		currentTool,
 		currentToolSize,
+		matrix,
 	} from "$lib/stores";
 
 	// i'll be honest, i used ai for this because i wouldn't be able to figure this out because i'm dumb
@@ -13,6 +14,9 @@
 	// -jovann
 
 	// TODO: implement currentToolSize into drawing tools
+	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour)
+
+	let { index } = $props();
 
 	// makes sure tools only affect the current matrix instance
 	let matrixContainer: HTMLElement;
@@ -192,6 +196,20 @@
 		startPixel = null;
 		endPixel = null;
 		originalPixelColors.clear();
+
+		const matrixData = new Uint32Array($rows * $columns);
+		const leds = matrixContainer.querySelectorAll<HTMLElement>(".led");
+		leds.forEach((led, i) => {
+			const color = window.getComputedStyle(led).backgroundColor;
+			const hexColor = rgbToHex(color);
+			console.log(hexColor)
+			const data = hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
+			matrixData[i] = data;
+		});
+		matrix.update(matrices => {
+			matrices[index] = matrixData;
+			return matrices;
+		});
 	};
 
 	function restoreOriginalColors() {
