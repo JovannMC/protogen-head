@@ -1,10 +1,12 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
 
-	import { panels, columns, rows } from "$lib/stores";
+	import { panels, columns, rows, matrix } from "$lib/stores";
+	import { invoke } from "@tauri-apps/api/core";
+	import { open, save } from "@tauri-apps/plugin-dialog";
 
 	// TODO: different cols/rows for each panel
-	
+
 	let previousValue = "1";
 
 	function validateInput(event: Event) {
@@ -34,15 +36,40 @@
 		}
 	}
 
-	function handleImport() {
-		// TODO: use tauri/rust backend
-		console.log("Importing...");
-	}
+    async function handleImport() {
+        try {
+            console.log("Opening file dialog for import...");
+            const filePath = await open({
+                multiple: false,
+                directory: false,
+                filters: [{ name: 'JSON', extensions: ['json'] }]
+            });
+            if (filePath) {
+				console.log(`Importing data from ${filePath}`);
+                const data = await invoke('import_data', { filePath });
+                console.log(`Imported data: ${data}`);
+            }
+        } catch (err) {
+            console.error(`Failed to import data: ${err}`);
+        }
+    }
 
-	function handleExport() {
-		// TODO: use tauri/rust backend
-		console.log("Exporting...");
-	}
+    async function handleExport() {
+        try {
+            console.log("Opening file dialog for export...");
+            const filePath = await save({
+                filters: [{ name: 'JSON', extensions: ['json'] }]
+            });
+            if (filePath) {
+                const data = $matrix.toString();
+                console.log(`Exporting data to ${filePath}`);
+                await invoke('export_data', { filePath, data });
+				console.log(`Exported data: ${data}`);
+            }
+        } catch (err) {
+            console.error(`Failed to export data: ${err}`);
+        }
+    }
 </script>
 
 <div
@@ -93,11 +120,17 @@
 		</div>
 	</div>
 	<div class="flex items-center justify-center gap-6">
-		<button class="flex items-center justify-center hoverable-lg" onclick={handleImport}>
+		<button
+			class="flex items-center justify-center hoverable-lg"
+			onclick={handleImport}
+		>
 			<Icon icon="mdi:import" width={24} class="text-secondary" />
 		</button>
 
-		<button class="flex items-center justify-center hoverable-lg" onclick={handleExport}>
+		<button
+			class="flex items-center justify-center hoverable-lg"
+			onclick={handleExport}
+		>
 			<Icon icon="mdi:export" width={24} class="text-secondary" />
 		</button>
 

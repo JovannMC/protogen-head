@@ -15,6 +15,9 @@
 
 	// TODO: implement currentToolSize into drawing tools
 	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour)
+	// TODO: implement undo/redo functionality
+	// TODO: import data from file and load it onto the matrix (detect how many panels via array size, figure out how to figure out rows/col. maybe store it in the file?)
+	// TODO: check/fix if exporting/importing multiple matrices works
 
 	let { index } = $props();
 
@@ -202,7 +205,6 @@
 		leds.forEach((led, i) => {
 			const color = window.getComputedStyle(led).backgroundColor;
 			const hexColor = rgbToHex(color);
-			console.log(hexColor)
 			const data = hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
 			matrixData[i] = data;
 		});
