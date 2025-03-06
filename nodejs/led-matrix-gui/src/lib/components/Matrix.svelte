@@ -13,7 +13,6 @@
 	// i'm sorry in advance
 	// -jovann
 
-	// TODO: implement currentToolSize into drawing tools
 	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour)
 	// TODO: implement undo/redo functionality
 	// TODO: import data from file and load it onto the matrix (detect how many panels via array size, figure out how to figure out rows/col. maybe store it in the file?)
@@ -96,6 +95,29 @@
 		return closestLed;
 	}
 
+	// TODO: apply to line/square/ellipse
+	function applyTool(pixel: HTMLElement, color: string) {
+		const coords = getPixelCoordinates(pixel);
+		if (!coords) return;
+
+		const { row, col } = coords;
+
+		for (
+			let r = row - Math.floor($currentToolSize / 2);
+			r <= row + Math.floor($currentToolSize / 2);
+			r++
+		) {
+			for (
+				let c = col - Math.floor($currentToolSize / 2);
+				c <= col + Math.floor($currentToolSize / 2);
+				c++
+			) {
+				const targetPixel = getPixelFromCoords(r, c);
+				if (targetPixel) setPixelColor(targetPixel, color);
+			}
+		}
+	}
+
 	function handlePixelClick(event: MouseEvent | KeyboardEvent) {
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -132,7 +154,7 @@
 			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
 		}
 
-		setPixelColor(pixel, newColor);
+		applyTool(pixel, newColor);
 	}
 
 	function handleMouseDown(event: MouseEvent) {
@@ -205,10 +227,11 @@
 		leds.forEach((led, i) => {
 			const color = window.getComputedStyle(led).backgroundColor;
 			const hexColor = rgbToHex(color);
-			const data = hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
+			const data =
+				hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
 			matrixData[i] = data;
 		});
-		matrix.update(matrices => {
+		matrix.update((matrices) => {
 			matrices[index] = matrixData;
 			return matrices;
 		});

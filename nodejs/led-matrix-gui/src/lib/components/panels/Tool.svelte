@@ -1,6 +1,11 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
-	import { currentTool, tools, type Tool } from "$lib/stores";
+	import {
+		currentTool,
+		currentToolSize,
+		tools,
+		type Tool,
+	} from "$lib/stores";
 	import { onMount } from "svelte";
 
 	function selectTool(event: Event) {
@@ -15,10 +20,21 @@
 		console.log(`Tool selected: ${tool}`);
 	}
 
-    onMount(() => {
-        const firstTool = document.querySelector("button") as HTMLButtonElement;
-        firstTool.classList.add("selected");
-    });
+	function validateInput(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.value && parseInt(input.value) < 1) input.value = "1";
+	}
+
+	function finishInput(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const value = parseInt(input.value) || 1;
+		currentToolSize.set(value);
+	}
+
+	onMount(() => {
+		const firstTool = document.querySelector("button") as HTMLButtonElement;
+		firstTool.classList.add("selected");
+	});
 </script>
 
 <div class="panel flex flex-col items-center gap-4">
@@ -37,5 +53,16 @@
 			<Icon {icon} class="text-primary w-3/4 h-3/4" />
 		</button>
 	{/each}
+	<div class="flex items-center flex-col gap-2">
+		<label for="tool-size" class="text-sm text-secondary">Size:</label>
+		<input
+			type="number"
+			id="tool-size"
+			class="w-10 h-8"
+			placeholder="1"
+			min="1"
+			oninput={validateInput}
+			onchange={finishInput}
+		/>
+	</div>
 </div>
-
