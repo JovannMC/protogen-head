@@ -95,23 +95,20 @@
 		return closestLed;
 	}
 
-	// TODO: apply to line/square/ellipse
 	function applyTool(pixel: HTMLElement, color: string) {
 		const coords = getPixelCoordinates(pixel);
 		if (!coords) return;
 
 		const { row, col } = coords;
 
-		for (
-			let r = row - Math.floor($currentToolSize / 2);
-			r <= row + Math.floor($currentToolSize / 2);
-			r++
-		) {
-			for (
-				let c = col - Math.floor($currentToolSize / 2);
-				c <= col + Math.floor($currentToolSize / 2);
-				c++
-			) {
+		// ensure exact tool size width/height
+		const startR = row - Math.floor(($currentToolSize - 1) / 2);
+		const endR = row + Math.floor($currentToolSize / 2);
+		const startC = col - Math.floor(($currentToolSize - 1) / 2);
+		const endC = col + Math.floor($currentToolSize / 2);
+
+		for (let r = startR; r <= endR; r++) {
+			for (let c = startC; c <= endC; c++) {
 				const targetPixel = getPixelFromCoords(r, c);
 				if (targetPixel) setPixelColor(targetPixel, color);
 			}
@@ -352,10 +349,22 @@
 		let col = startCol;
 
 		while (true) {
-			const pixel = getPixelFromCoords(row, col);
-			if (pixel) {
-				if (isPreview) storeOriginalColor(row, col);
-				setPixelColor(pixel, color);
+			for (
+				let r = row - Math.floor($currentToolSize / 2);
+				r <= row + Math.floor($currentToolSize / 2);
+				r++
+			) {
+				for (
+					let c = col - Math.floor($currentToolSize / 2);
+					c <= col + Math.floor($currentToolSize / 2);
+					c++
+				) {
+					const pixel = getPixelFromCoords(r, c);
+					if (pixel) {
+						if (isPreview) storeOriginalColor(r, c);
+						setPixelColor(pixel, color);
+					}
+				}
 			}
 
 			if (row === endRow && col === endCol) break;
@@ -394,10 +403,22 @@
 					col === minCol ||
 					col === maxCol
 				) {
-					const pixel = getPixelFromCoords(row, col);
-					if (pixel) {
-						if (isPreview) storeOriginalColor(row, col);
-						setPixelColor(pixel, color);
+					for (
+						let r = row - Math.floor($currentToolSize / 2);
+						r <= row + Math.floor($currentToolSize / 2);
+						r++
+					) {
+						for (
+							let c = col - Math.floor($currentToolSize / 2);
+							c <= col + Math.floor($currentToolSize / 2);
+							c++
+						) {
+							const pixel = getPixelFromCoords(r, c);
+							if (pixel) {
+								if (isPreview) storeOriginalColor(r, c);
+								setPixelColor(pixel, color);
+							}
+						}
 					}
 				}
 			}
@@ -417,22 +438,41 @@
 		const radiusRow = Math.abs(endRow - startRow) / 2;
 		const radiusCol = Math.abs(endCol - startCol) / 2;
 
-		// Using midpoint ellipse algorithm
-		for (let row = 0; row < $rows; row++) {
-			for (let col = 0; col < $columns; col++) {
-				// Check if point is on the ellipse (approximation)
-				const normalizedRow = (row - centerRow) / radiusRow;
-				const normalizedCol = (col - centerCol) / radiusCol;
-				const distance =
-					normalizedRow * normalizedRow +
-					normalizedCol * normalizedCol;
+		// Adjust step size based on ellipse size to avoid too many points
+		const circumference =
+			2 *
+			Math.PI *
+			Math.sqrt((radiusRow * radiusRow + radiusCol * radiusCol) / 2);
+		const step = Math.max(0.01, Math.min(0.2, 1 / circumference));
 
-				// Approximate ellipse border with some tolerance
-				if (Math.abs(distance - 1) < 0.2) {
-					const pixel = getPixelFromCoords(row, col);
-					if (pixel) {
-						if (isPreview) storeOriginalColor(row, col);
-						setPixelColor(pixel, color);
+		// Track which pixels we've already processed to avoid redundant operations
+		const processedPixels = new Set<string>();
+
+		// Using parametric form of ellipse to get points
+		for (let theta = 0; theta < 2 * Math.PI; theta += step) {
+			const row = Math.round(centerRow + radiusRow * Math.sin(theta));
+			const col = Math.round(centerCol + radiusCol * Math.cos(theta));
+
+			if (row >= 0 && row < $rows && col >= 0 && col < $columns) {
+				// Apply tool size properly - for size 1, only color the exact point
+				// For size > 1, create an appropriate radius
+				const offset = Math.floor(($currentToolSize - 1) / 2);
+
+				for (let r = row - offset; r <= row + offset; r++) {
+					for (let c = col - offset; c <= col + offset; c++) {
+						// Skip if outside the matrix or already processed
+						if (r < 0 || r >= $rows || c < 0 || c >= $columns)
+							continue;
+
+						const key = `${r},${c}`;
+						if (processedPixels.has(key)) continue;
+						processedPixels.add(key);
+
+						const pixel = getPixelFromCoords(r, c);
+						if (pixel) {
+							if (isPreview) storeOriginalColor(r, c);
+							setPixelColor(pixel, color);
+						}
 					}
 				}
 			}
