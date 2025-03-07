@@ -111,10 +111,15 @@
 			for (let c = startC; c <= endC; c++) {
 				const targetPixel = getPixelFromCoords(r, c);
 				if (targetPixel) setPixelColor(targetPixel, color);
+				if (r >= 0 && r < $rows && c >= 0 && c < $columns) {
+					matrix.update((matrices) => {
+						matrices[index][r][c] = parseInt(color.slice(1), 16);
+						return matrices;
+					});
+				}
 			}
 		}
 	}
-
 	function handlePixelClick(event: MouseEvent | KeyboardEvent) {
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -202,7 +207,6 @@
 			drawPreview();
 		}
 	}
-
 	const handleMouseUp = () => {
 		if (!isDragging || !startPixel || !endPixel) {
 			isDragging = false;
@@ -219,14 +223,18 @@
 		endPixel = null;
 		originalPixelColors.clear();
 
-		const matrixData = new Uint32Array($rows * $columns);
+		const matrixData = Array.from({ length: $rows }, () =>
+			Array($columns).fill(0),
+		);
 		const leds = matrixContainer.querySelectorAll<HTMLElement>(".led");
 		leds.forEach((led, i) => {
+			const row = Math.floor(i / $columns);
+			const col = i % $columns;
 			const color = window.getComputedStyle(led).backgroundColor;
 			const hexColor = rgbToHex(color);
 			const data =
 				hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
-			matrixData[i] = data;
+			matrixData[row][col] = data;
 		});
 		matrix.update((matrices) => {
 			matrices[index] = matrixData;

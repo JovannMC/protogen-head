@@ -4,7 +4,7 @@ export const panels = writable(1);
 export const columns = writable(64);
 export const rows = writable(32);
 
-export const matrix = writable<Uint32Array[]>([new Uint32Array(64 * 32)]);
+export const matrix = writable<number[][][]>([Array(64).fill(0).map(() => Array(32).fill(0))]);
 
 export const currentColor = writable("#000000");
 export const currentTool: Writable<Tool> = writable("pen");

@@ -36,40 +36,40 @@
 		}
 	}
 
-    async function handleImport() {
-        try {
-            console.log("Opening file dialog for import...");
-            const filePath = await open({
-                multiple: false,
-                directory: false,
-                filters: [{ name: 'JSON', extensions: ['json'] }]
-            });
-            if (filePath) {
+	async function handleImport() {
+		try {
+			console.log("Opening file dialog for import...");
+			const filePath = await open({
+				multiple: false,
+				directory: false,
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			});
+			if (filePath) {
 				console.log(`Importing data from ${filePath}`);
-                const data = await invoke('import_data', { filePath });
-                console.log(`Imported data: ${data}`);
-            }
-        } catch (err) {
-            console.error(`Failed to import data: ${err}`);
-        }
-    }
+				const data = await invoke("import_data", { filePath });
+				console.log(`Imported data: ${data}`);
+			}
+		} catch (err) {
+			console.error(`Failed to import data: ${err}`);
+		}
+	}
 
-    async function handleExport() {
-        try {
-            console.log("Opening file dialog for export...");
-            const filePath = await save({
-                filters: [{ name: 'JSON', extensions: ['json'] }]
-            });
-            if (filePath) {
-                const data = $matrix.toString();
-                console.log(`Exporting data to ${filePath}`);
-                await invoke('export_data', { filePath, data });
+	async function handleExport() {
+		try {
+			console.log("Opening file dialog for export...");
+			const filePath = await save({
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			});
+			if (filePath) {
+				const data = JSON.stringify($matrix);
+				console.log(`Exporting data to ${filePath}`);
+				await invoke("export_data", { filePath, data });
 				console.log(`Exported data: ${data}`);
-            }
-        } catch (err) {
-            console.error(`Failed to export data: ${err}`);
-        }
-    }
+			}
+		} catch (err) {
+			console.error(`Failed to export data: ${err}`);
+		}
+	}
 </script>
 
 <div
