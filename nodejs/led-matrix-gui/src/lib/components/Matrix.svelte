@@ -7,16 +7,18 @@
 		currentToolSize,
 		matrix,
 	} from "$lib/stores";
+	import { onMount } from "svelte";
 
 	// i'll be honest, i used ai for this because i wouldn't be able to figure this out because i'm dumb
 	// not like anyone else is gonna use it so.. yeah. if it works it works ig
 	// i'm sorry in advance
 	// -jovann
 
-	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour)
+	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour). this leads to black being considered transparent when it's not
 	// TODO: implement undo/redo functionality
 	// TODO: import data from file and load it onto the matrix (detect how many panels via array size, figure out how to figure out rows/col. maybe store it in the file?)
 	// TODO: check/fix if exporting/importing multiple matrices works
+	// TODO: border around pixels
 
 	let { index } = $props();
 
@@ -130,7 +132,6 @@
 
 		let newColor = $currentColor;
 
-		// TODO handle transparent better (add class/id probably)
 		if ($currentColor === "transparent") {
 			const computedStyle = getComputedStyle(document.documentElement);
 			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
@@ -533,6 +534,46 @@
 
 		return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 	}
+
+	onMount(() => {
+		document
+			.getElementById(`panel-${index}`)
+			?.addEventListener("update-matrix", (event: Event) => {
+				const customEvent = event as CustomEvent<{
+					panelData: number[][];
+				}>;
+				const panelData = customEvent.detail.panelData;
+
+				const matrixData = Array.from({ length: $rows }, () =>
+					Array($columns).fill(0),
+				);
+				const leds =
+					matrixContainer.querySelectorAll<HTMLElement>(".led");
+				leds.forEach((led, i) => {
+					// reset to default color
+					led.style.backgroundColor = "#a8a3a3";
+
+					const col = i % $columns;
+					const row = Math.floor(i / $columns);
+
+					if (row < panelData.length && col < panelData[row].length) {
+						const color = panelData[row][col];
+						let hexString = color.toString(16);
+						while (hexString.length < 6)
+							hexString = "0" + hexString;
+						const hexColor =
+							color === 0 ? "#a8a3a3" : `#${hexString}`;
+
+						led.style.backgroundColor = hexColor;
+						matrixData[row][col] = color;
+					}
+				});
+				matrix.update((matrices) => {
+					matrices[index] = matrixData;
+					return matrices;
+				});
+			});
+	});
 </script>
 
 <div
@@ -547,6 +588,7 @@
 	tabindex="0"
 	aria-label="LED Matrix"
 	draggable={false}
+	id={`panel-${index}`}
 >
 	{#each Array($rows) as _, rowIndex}
 		{#each Array($columns) as _, colIndex}

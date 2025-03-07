@@ -57,15 +57,15 @@
 
 					const panelCount = data.length;
 
-					// TODO: set different cols/rows for each panel
+					// TODO: allow setting different cols/rows for each panel
 					// const cols = data[0].length;
 					// const rows = data[0][0].length;
 
-					// set cols/rows for all panels
+					// update matrix settings & set data
 					for (let i = 0; i < panelCount; i++) {
 						const panelCount = data.length;
-						const colCount = data[i].length;
-						const rowCount = data[i][0].length;
+						const rowCount = data[i].length;
+						const colCount = data[i][0].length;
 
 						panels.set(panelCount);
 						panelsElement.value = panelCount.toString();
@@ -76,13 +76,18 @@
 
 						matrix.set(data);
 
-						// get colours of each pixel
-						for (let j = 0; j < data[i].length; j++) {
-							for (let k = 0; k < data[i][j].length; k++) {
-								const pixel = data[i][j][k];
-								console.log(`Pixel in panel ${i + 1}, ${j + 1},${k + 1}: ${pixel}`);
-							}
-						}
+						// update matrix for each panel
+						setTimeout(() => {
+							document
+								.getElementById(`panel-${i}`)
+								?.dispatchEvent(
+									new CustomEvent("update-matrix", {
+										detail: {
+											panelData: data[i],
+										},
+									}),
+								);
+						}, 50); // allow time for matrix to be re-rendered
 					}
 				}
 			}
