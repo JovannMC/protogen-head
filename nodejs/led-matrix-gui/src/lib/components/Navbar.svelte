@@ -1,12 +1,15 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
 
-	import { panels, columns, rows, matrix } from "$lib/stores";
+	import { panels, columns, rows, matrix, type Matrices } from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
 
 	// TODO: different cols/rows for each panel
 
+	let panelsElement: HTMLInputElement;
+	let columnsElement: HTMLInputElement;
+	let rowsElement: HTMLInputElement;
 	let previousValue = "1";
 
 	function validateInput(event: Event) {
@@ -46,8 +49,42 @@
 			});
 			if (filePath) {
 				console.log(`Importing data from ${filePath}`);
-				const data = await invoke("import_data", { filePath });
-				console.log(`Imported data: ${data}`);
+				const data: Matrices = JSON.parse(
+					await invoke("import_data", { filePath }),
+				);
+				if (data) {
+					console.log(`Imported data: ${data}`);
+
+					const panelCount = data.length;
+
+					// TODO: set different cols/rows for each panel
+					// const cols = data[0].length;
+					// const rows = data[0][0].length;
+
+					// set cols/rows for all panels
+					for (let i = 0; i < panelCount; i++) {
+						const panelCount = data.length;
+						const colCount = data[i].length;
+						const rowCount = data[i][0].length;
+
+						panels.set(panelCount);
+						panelsElement.value = panelCount.toString();
+						columns.set(colCount);
+						columnsElement.value = colCount.toString();
+						rows.set(rowCount);
+						rowsElement.value = rowCount.toString();
+
+						matrix.set(data);
+
+						// get colours of each pixel
+						for (let j = 0; j < data[i].length; j++) {
+							for (let k = 0; k < data[i][j].length; k++) {
+								const pixel = data[i][j][k];
+								console.log(`Pixel in panel ${i + 1}, ${j + 1},${k + 1}: ${pixel}`);
+							}
+						}
+					}
+				}
 			}
 		} catch (err) {
 			console.error(`Failed to import data: ${err}`);
@@ -89,6 +126,7 @@
 				min="1"
 				oninput={validateInput}
 				onchange={finishInput}
+				bind:this={panelsElement}
 			/>
 		</div>
 		<div class="flex items-center gap-2">
@@ -101,6 +139,7 @@
 				min="1"
 				oninput={validateInput}
 				onchange={finishInput}
+				bind:this={columnsElement}
 			/>
 		</div>
 		<div class="flex items-center gap-2">
@@ -116,6 +155,7 @@
 				onkeydown={(event) => {
 					if (event.key === "Enter") finishInput(event);
 				}}
+				bind:this={rowsElement}
 			/>
 		</div>
 	</div>
