@@ -4,6 +4,10 @@ import { matrix } from "$lib/stores";
 export const pastStates = writable<[number, any[]][]>([]);
 export const futureStates = writable<[number, any[]][]>([]);
 
+// FIXME: this shit is so buggy.
+// it works for simple undos (1-2), but as soon as you start drawing again itll break and you wont be able to redo
+// i don't think i'm gonna bother lmfao
+
 export function addToHistory(panelIndex: number, matrices: any[]) {
 	console.log(`Adding to history for panel ${panelIndex}`);
 

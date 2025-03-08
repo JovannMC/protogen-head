@@ -112,6 +112,14 @@
 				if (targetPixel) setPixelColor(targetPixel, color);
 				if (r >= 0 && r < $rows && c >= 0 && c < $columns) {
 					matrix.update((matrices) => {
+						if (!matrices[index]) {
+							matrices[index] = Array($rows)
+								.fill(0)
+								.map(() => Array($columns).fill(0));
+						}
+						if (!matrices[index][r]) {
+							matrices[index][r] = Array($columns).fill(0);
+						}
 						matrices[index][r][c] = parseInt(color.slice(1), 16);
 						return matrices;
 					});
@@ -119,6 +127,7 @@
 			}
 		}
 	}
+
 	function handlePixelClick(event: MouseEvent | KeyboardEvent) {
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -129,9 +138,7 @@
 
 		let newColor = $currentColor;
 
-		if ($currentColor === "transparent") {
-			newColor = "#000000";
-		}
+		if ($currentColor === "transparent") newColor = "#000000";
 
 		if (tool === "picker") {
 			const pixelColor = window.getComputedStyle(pixel).backgroundColor;
@@ -241,7 +248,6 @@
 		});
 
 		addToHistory(index, get(matrix));
-		console.log($matrixHistory)
 	};
 
 	function restoreOriginalColors() {
