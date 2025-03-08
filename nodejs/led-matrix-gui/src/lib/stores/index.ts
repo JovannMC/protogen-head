@@ -8,7 +8,7 @@ export const matrix = writable<Matrices>([Array(64).fill(0).map(() => Array(32).
 type historyEntry = [number, Matrices];
 export const matrixHistory = writable<historyEntry[]>([[0, Array(64).fill(0).map(() => Array(32).fill(0))]]);
 
-export const currentColor = writable("#000000");
+export const currentColor = writable("#ffffff");
 export const currentTool: Writable<Tool> = writable("pen");
 export const currentToolSize = writable(1);
 export const currentAnimation: Writable<Animation> = writable("none");
