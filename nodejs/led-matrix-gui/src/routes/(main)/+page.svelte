@@ -3,9 +3,37 @@
 	import * as Panel from "$lib/components/panels";
 
 	import { panels, columns, rows } from "$lib/stores";
+	import { undo, redo, initHistory, limitHistorySize } from "$lib/history";
+	import { onMount } from "svelte";
 
 	$effect(() => {
 		console.log(`Panels: ${$panels}, Cols: ${$columns}, Rows: ${$rows}`);
+	});
+
+	onMount(() => {
+		const keyState = { ctrlZ: false, ctrlY: false };
+
+		document.addEventListener("keydown", (event) => {
+			if (event.ctrlKey && event.key === "z" && !keyState.ctrlZ) {
+				keyState.ctrlZ = true;
+				undo();
+			} else if (event.ctrlKey && event.key === "y" && !keyState.ctrlY) {
+				keyState.ctrlY = true;
+				redo();
+			}
+		});
+
+		document.addEventListener("keyup", (event) => {
+			if (event.key === "z") keyState.ctrlZ = false;
+			if (event.key === "y") keyState.ctrlY = false;
+			if (!event.ctrlKey) {
+				keyState.ctrlZ = false;
+				keyState.ctrlY = false;
+			}
+		});
+
+		initHistory();
+		limitHistorySize(100);
 	});
 </script>
 

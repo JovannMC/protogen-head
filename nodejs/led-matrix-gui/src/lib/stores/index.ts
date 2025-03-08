@@ -5,6 +5,8 @@ export const columns = writable(64);
 export const rows = writable(32);
 
 export const matrix = writable<Matrices>([Array(64).fill(0).map(() => Array(32).fill(0))]);
+type historyEntry = [number, Matrices];
+export const matrixHistory = writable<historyEntry[]>([[0, Array(64).fill(0).map(() => Array(32).fill(0))]]);
 
 export const currentColor = writable("#000000");
 export const currentTool: Writable<Tool> = writable("pen");

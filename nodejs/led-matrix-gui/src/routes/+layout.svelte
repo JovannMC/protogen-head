@@ -13,7 +13,6 @@
 	<div class="fixed top-0 w-full z-10">
 		<Panel />
 	</div>
-	
 
 	<div class="grid grid-rows-1 grid-cols-1 h-full flex-grow mt-12">
 		{@render children()}
