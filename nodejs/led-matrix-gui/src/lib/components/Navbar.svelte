@@ -176,7 +176,7 @@
 			class="flex items-center justify-center hoverable-lg"
 			onclick={handleExport}
 		>
-			<Icon icon="mdi:export" width={24} class="text-secondary" />
+			<Icon icon="mdi:content-save" width={24} class="text-secondary" />
 		</button>
 
 		<a
