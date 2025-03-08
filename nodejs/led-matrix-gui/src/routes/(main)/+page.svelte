@@ -17,7 +17,7 @@
 	<div class="flex-1 flex flex-col">
 		<div class="flex-1 flex items-center flex-wrap justify-center pb-24">
 			{#each Array($panels) as _, index}
-				<div class="bg-primary p-2 rounded-lg m-2">
+				<div class="bg-tertiary p-2 rounded-lg m-2">
 					<Matrix {index} />
 				</div>
 			{/each}

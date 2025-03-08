@@ -14,11 +14,7 @@
 	// i'm sorry in advance
 	// -jovann
 
-	// TODO: handle "transparent" better (that *one* colour [#a8a3a3] is considered transparent / no colour). this leads to black being considered transparent when it's not
 	// TODO: implement undo/redo functionality
-	// TODO: import data from file and load it onto the matrix (detect how many panels via array size, figure out how to figure out rows/col. maybe store it in the file?)
-	// TODO: check/fix if exporting/importing multiple matrices works
-	// TODO: border around pixels
 
 	let { index } = $props();
 
@@ -134,7 +130,7 @@
 
 		if ($currentColor === "transparent") {
 			const computedStyle = getComputedStyle(document.documentElement);
-			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
+			newColor = "#000000";
 		}
 
 		if (tool === "picker") {
@@ -154,7 +150,7 @@
 
 		if (tool === "eraser") {
 			const computedStyle = getComputedStyle(document.documentElement);
-			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
+			newColor = "#000000";
 		}
 
 		applyTool(pixel, newColor);
@@ -234,7 +230,7 @@
 			const color = window.getComputedStyle(led).backgroundColor;
 			const hexColor = rgbToHex(color);
 			const data =
-				hexColor === "#a8a3a3" ? 0 : parseInt(hexColor.slice(1), 16);
+				hexColor === "#000000" ? 0 : parseInt(hexColor.slice(1), 16);
 			matrixData[row][col] = data;
 		});
 		matrix.update((matrices) => {
@@ -267,7 +263,7 @@
 		let newColor = $currentColor;
 		if ($currentColor === "transparent") {
 			const computedStyle = getComputedStyle(document.documentElement);
-			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
+			newColor = "#000000";
 		}
 
 		if (tool === "line") {
@@ -306,7 +302,7 @@
 		let newColor = $currentColor;
 		if ($currentColor === "transparent") {
 			const computedStyle = getComputedStyle(document.documentElement);
-			newColor = computedStyle.getPropertyValue("--bg-tertiary").trim();
+			newColor = "#000000";
 		}
 
 		if (tool === "line") {
@@ -551,7 +547,7 @@
 					matrixContainer.querySelectorAll<HTMLElement>(".led");
 				leds.forEach((led, i) => {
 					// reset to default color
-					led.style.backgroundColor = "#a8a3a3";
+					led.style.backgroundColor = "#000000";
 
 					const col = i % $columns;
 					const row = Math.floor(i / $columns);
@@ -562,7 +558,7 @@
 						while (hexString.length < 6)
 							hexString = "0" + hexString;
 						const hexColor =
-							color === 0 ? "#a8a3a3" : `#${hexString}`;
+							color === 0 ? "#000000" : `#${hexString}`;
 
 						led.style.backgroundColor = hexColor;
 						matrixData[row][col] = color;
@@ -578,7 +574,7 @@
 
 <div
 	bind:this={matrixContainer}
-	class="grid gap-1"
+	class="grid gap-[3px]"
 	style="grid-template-columns: repeat({$columns}, minmax(0, 1fr)); grid-template-rows: repeat({$rows}, minmax(0, 1fr));"
 	onmouseup={handleMouseUp}
 	onmousedown={handleMouseDown}
@@ -593,7 +589,7 @@
 	{#each Array($rows) as _, rowIndex}
 		{#each Array($columns) as _, colIndex}
 			<button
-				class="led w-1 h-1 bg-tertiary"
+				class="led w-1 h-1 bg-black"
 				data-row={rowIndex}
 				data-col={colIndex}
 				aria-label="LED"

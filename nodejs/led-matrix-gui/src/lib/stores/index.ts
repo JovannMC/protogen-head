@@ -33,7 +33,6 @@ export const defaultColors = [
 	"#FFFF00",
 	"#FF00FF",
 	"#00FFFF",
-	"#000000",
 	"#FFFFFF",
 	"transparent",
 ];

@@ -28,9 +28,7 @@
 	function clearAll() {
 		Array.from(document.getElementsByClassName("led")).forEach((led) => {
 			const computedStyle = getComputedStyle(document.documentElement);
-			const color = computedStyle
-				.getPropertyValue("--bg-tertiary")
-				.trim();
+			const color = "#000000";
 			(led as HTMLElement).style.backgroundColor = color;
 		});
 	}
