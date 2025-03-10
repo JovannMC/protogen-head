@@ -1,9 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use tauri_plugin_dialog::FileDialogBuilder;
-use tauri::Manager;
 use std::fs;
 use std::io::{self, Write};
+use tauri::Manager;
+use tauri_plugin_dialog::FileDialogBuilder;
 
 #[tauri::command]
 fn import_data(file_path: String) -> Result<String, String> {
@@ -28,6 +28,7 @@ fn export_data(file_path: String, data: String) -> Result<(), String> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![import_data, export_data])
         .run(tauri::generate_context!())

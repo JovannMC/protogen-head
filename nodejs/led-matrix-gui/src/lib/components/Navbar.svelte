@@ -57,7 +57,7 @@
 
 					const panelCount = data.length;
 
-					// TODO: allow setting different cols/rows for each panel
+					// placeholder for allowing setting different cols/rows for each panel
 					// const cols = data[0].length;
 					// const rows = data[0][0].length;
 
@@ -169,21 +169,21 @@
 			class="flex items-center justify-center hoverable-lg"
 			onclick={handleImport}
 		>
-			<Icon icon="mdi:import" width={24} class="text-secondary" />
+			<Icon icon="mdi:import" width={24} />
 		</button>
 
 		<button
 			class="flex items-center justify-center hoverable-lg"
 			onclick={handleExport}
 		>
-			<Icon icon="mdi:content-save" width={24} class="text-secondary" />
+			<Icon icon="mdi:content-save" width={24} />
 		</button>
 
 		<a
-			href="/settings"
-			class="hover:rotate-180 transform transition-transform duration-300 hoverable-lg"
+			href="/about"
+			class="hoverable-lg"
 		>
-			<Icon icon="mdi:settings" width={24} />
+			<Icon icon="mdi:info" width={24} />
 		</a>
 	</div>
 </div>
