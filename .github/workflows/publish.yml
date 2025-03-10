@@ -50,7 +50,7 @@ jobs:
         run: pwd
 
       - name: move to led-matrix-gui directory
-        run: cd nodejs/led-matrix-gui
+        run: cd ./nodejs/led-matrix-gui
 
       - name: Print current directory
         run: pwd
