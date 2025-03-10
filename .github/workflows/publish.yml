@@ -49,6 +49,9 @@ jobs:
       - name: install frontend dependencies
         run: bun install
 
+      - name: move to led-matrix-gui directory
+        run: cd nodejs/led-matrix-gui
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
