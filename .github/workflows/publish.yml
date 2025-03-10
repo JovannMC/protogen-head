@@ -46,22 +46,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Print current directory
-        run: pwd
-
-      - name: move to led-matrix-gui directory
-        run: cd ./nodejs/led-matrix-gui
-
-      - name: Print current directory
-        run: pwd
-
       - name: install frontend dependencies
+        working-directory: ./nodejs/led-matrix-gui
         run: bun install
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          distPath: ./nodejs/led-matrix-gui
           tagName: led-matrix-gui-v__VERSION__
           releaseName: "LED Matrix GUI v__VERSION__"
           releaseBody: "See the assets to download and run this version of the app."
