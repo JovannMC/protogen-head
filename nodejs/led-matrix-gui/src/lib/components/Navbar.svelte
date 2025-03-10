@@ -4,6 +4,8 @@
 	import { panels, columns, rows, matrix, type Matrices } from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
+	import { getVersion } from "@tauri-apps/api/app";
+	import { onMount } from "svelte";
 
 	// TODO: different cols/rows for each panel
 
@@ -112,13 +114,24 @@
 			console.error(`Failed to export data: ${err}`);
 		}
 	}
+
+	onMount(async () => {
+		try {
+			const version = await getVersion();
+			const versionElement = document.getElementById("version");
+			if (versionElement) versionElement.textContent = `v${version}`;
+		} catch (err) {
+			console.error(`Failed to get version: ${err}`);
+		}
+	});
 </script>
 
 <div
 	class="w-full h-12 bg-primary shadow-md z-10 flex items-center justify-between px-4"
 >
-	<div class="flex items-center space-x-4">
+	<div class="flex items-center gap-2">
 		<a href="/" class="text-secondary font-bold text-lg">LED Matrix</a>
+		<span class="text-secondary text-sm" id="version">v0.0.0</span>
 	</div>
 	<div class="flex items-center gap-4">
 		<div class="flex items-center gap-2">
@@ -179,10 +192,7 @@
 			<Icon icon="mdi:content-save" width={24} />
 		</button>
 
-		<a
-			href="/about"
-			class="hoverable-lg"
-		>
+		<a href="/about" class="hoverable-lg">
 			<Icon icon="mdi:info" width={24} />
 		</a>
 	</div>
