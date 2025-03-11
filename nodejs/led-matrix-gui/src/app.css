@@ -38,6 +38,10 @@ input[type="number"]::placeholder {
 	@apply flex flex-col items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
 }
 
+.panel-row {
+	@apply flex flex-row items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
+}
+
 .hoverable-sm {
 	@apply cursor-pointer duration-200 hover:scale-[1.025] focus:!outline-none active:scale-[0.975];
 }
