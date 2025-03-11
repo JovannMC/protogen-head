@@ -25,6 +25,7 @@ fn export_data(file_path: String, data: String) -> Result<(), String> {
 }
 
 fn main() {
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1"); // alternatively `WEBKIT_DISABLE_COMPOSITING_MODE` if this one is not enough
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
