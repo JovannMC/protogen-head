@@ -64,11 +64,13 @@
 	}
 
 	function handleMouseDown(event: MouseEvent) {
+		if ((event.target as HTMLElement).tagName.toLowerCase() === 'button') return;
 		isDragging = true;
 		selectFrame(event);
 	}
 
 	function handleMouseMove(event: MouseEvent) {
+		if ((event.target as HTMLElement).tagName.toLowerCase() === 'button') return;
 		if (isDragging) selectFrame(event);
 	}
 
