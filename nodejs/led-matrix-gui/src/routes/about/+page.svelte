@@ -121,6 +121,6 @@
 	}
 
 	.container {
-		@apply flex flex-col items-center justify-center gap-2;
+		@apply flex flex-col items-center justify-center gap-2 select-text;
 	}
 </style>

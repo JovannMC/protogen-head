@@ -7,7 +7,7 @@
 	import { onMount } from "svelte";
 
 	$effect(() => {
-		console.log(`Panels: ${$panels}, Cols: ${$columns}, Rows: ${$rows}`);
+		console.log(`Panels: ${$panels}, cols: ${$columns}, rows: ${$rows}`);
 	});
 
 	onMount(() => {

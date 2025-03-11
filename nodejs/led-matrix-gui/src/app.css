@@ -21,7 +21,7 @@
 }
 
 body {
-	@apply bg-body text-secondary;
+	@apply bg-body text-secondary select-none;
 }
 
 input[type="text"],

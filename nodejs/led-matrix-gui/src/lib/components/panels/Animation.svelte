@@ -5,9 +5,10 @@
 
 	let isPlaying = false;
 	let isLooping = true;
-	let keyframes: number[] = [0, 30, 60];
+	let keyframes: number[] = [0, 30, 60, 90];
 	let totalFrames = 120;
 	let animationInterval: ReturnType<typeof setInterval>;
+	let isDragging = false;
 
 	function addKeyframe() {
 		const newFrame = $currentFrame;
@@ -60,6 +61,27 @@
 
 	function goToKeyframe(frame: number) {
 		$currentFrame = frame;
+	}
+
+	function handleMouseDown(event: MouseEvent) {
+		isDragging = true;
+		selectFrame(event);
+	}
+
+	function handleMouseMove(event: MouseEvent) {
+		if (isDragging) selectFrame(event);
+	}
+
+	function handleMouseUp() {
+		isDragging = false;
+	}
+
+	function selectFrame(event: MouseEvent) {
+		const timeline = event.currentTarget as HTMLElement;
+		const rect = timeline.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		const newFrame = Math.round((x / rect.width) * totalFrames);
+		$currentFrame = Math.min(Math.max(newFrame, 0), totalFrames - 1);
 	}
 
 	onMount(() => {
@@ -125,7 +147,17 @@
 			</div>
 		</div>
 
-		<div class="h-12 bg-secondary/20 rounded relative">
+		<div
+			class="h-12 bg-secondary/20 rounded relative"
+			onmousedown={handleMouseDown}
+			onmousemove={handleMouseMove}
+			onmouseup={handleMouseUp}
+			role="slider"
+			aria-valuemin="0"
+			aria-valuemax={totalFrames - 1}
+			aria-valuenow={$currentFrame}
+			tabindex="0"
+		>
 			{#each Array(Math.ceil(totalFrames / 10)) as _, i}
 				<div
 					class="absolute top-0 left-0 h-full border-l border-secondary/30"
