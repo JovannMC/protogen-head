@@ -10,7 +10,7 @@
 		matrixHistory,
 		currentFrame,
 	} from "$lib/stores";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { get } from "svelte/store";
 
 	// i'll be honest, i used ai for a lot of this because i wouldn't be able to figure this out because i'm dumb
@@ -26,6 +26,7 @@
 
 	// makes sure tools only affect the current matrix instance
 	let matrixContainer: HTMLElement;
+	let currentFrameUnsubscribe: () => void;
 
 	let isDragging = false;
 	let tool = $currentTool;
@@ -572,6 +573,7 @@
 
 			if (
 				panelData &&
+				panelData[row] &&
 				row < panelData.length &&
 				col < panelData[row].length
 			) {
@@ -611,7 +613,7 @@
 				updateMatrixDisplay(panelData, false);
 			});
 
-		currentFrame.subscribe((frame) => {
+		currentFrameUnsubscribe = currentFrame.subscribe((frame) => {
 			console.log(`Switching to frame ${frame}`);
 
 			if ($matrix[index]) {
@@ -647,6 +649,10 @@
 				updateMatrixDisplay(emptyFrame, false);
 			}
 		});
+	});
+
+	onDestroy(() => {
+		if (currentFrameUnsubscribe) currentFrameUnsubscribe();
 	});
 </script>
 

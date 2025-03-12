@@ -2,7 +2,7 @@
 	import Matrix from "$lib/components/Matrix.svelte";
 	import * as Panel from "$lib/components/panels";
 
-	import { panels, columns, rows, matrix } from "$lib/stores";
+	import { panels, columns, rows, matrix, currentFrame } from "$lib/stores";
 	import { undo, redo, initHistory, limitHistorySize } from "$lib/history";
 	import { onMount } from "svelte";
 
@@ -37,11 +37,14 @@
 
 		if ($matrix && $matrix.length > 0) {
 			$matrix.forEach((panelData, index) => {
-				console.log(`Reloading panel ${index} from matrix store`);
+				const frameData = panelData[$currentFrame] || panelData[0];
+				console.log(
+					`Reloading panel ${index} from matrix store, frame ${$currentFrame}`,
+				);
 				document.getElementById(`panel-${index}`)?.dispatchEvent(
 					new CustomEvent("update-matrix", {
 						detail: {
-							panelData: panelData,
+							panelData: frameData,
 						},
 					}),
 				);
