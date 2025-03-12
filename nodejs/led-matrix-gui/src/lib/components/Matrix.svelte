@@ -8,14 +8,19 @@
 		currentToolSize,
 		matrix,
 		matrixHistory,
+		currentFrame,
 	} from "$lib/stores";
 	import { onMount } from "svelte";
 	import { get } from "svelte/store";
 
-	// i'll be honest, i used ai for this because i wouldn't be able to figure this out because i'm dumb
+	// i'll be honest, i used ai for a lot of this because i wouldn't be able to figure this out because i'm dumb
 	// not like anyone else is gonna use it so.. yeah. if it works it works ig
 	// i'm sorry in advance
 	// -jovann
+
+	// 2025/03/12 update:
+	// oh my fucking god, this animation code is awful. i'm so sorry.
+	// enjoy your arrays in an array of arrays in an array of more arrays
 
 	let { index } = $props();
 
@@ -113,14 +118,23 @@
 				if (r >= 0 && r < $rows && c >= 0 && c < $columns) {
 					matrix.update((matrices) => {
 						if (!matrices[index]) {
-							matrices[index] = Array($rows)
+							matrices[index] = [];
+						}
+						if (!matrices[index][$currentFrame]) {
+							matrices[index][$currentFrame] = Array($rows)
 								.fill(0)
 								.map(() => Array($columns).fill(0));
 						}
-						if (!matrices[index][r]) {
-							matrices[index][r] = Array($columns).fill(0);
+						if (!matrices[index][$currentFrame][r]) {
+							matrices[index][$currentFrame][r] =
+								Array($columns).fill(0);
 						}
-						matrices[index][r][c] = parseInt(color.slice(1), 16);
+
+						matrices[index][$currentFrame][r][c] = parseInt(
+							color.slice(1),
+							16,
+						);
+
 						return matrices;
 					});
 				}
@@ -208,6 +222,7 @@
 			drawPreview();
 		}
 	}
+
 	const handleMouseUp = () => {
 		if (!isDragging || !startPixel || !endPixel) {
 			isDragging = false;
@@ -239,11 +254,17 @@
 		});
 
 		matrix.update((matrices) => {
-			matrices[index] = matrixData;
+			if (!matrices[index]) matrices[index] = [];
+
+			// Make sure we're updating the current frame, not replacing the entire panel data
+			matrices[index][$currentFrame] = matrixData;
+
+			console.log(`Matrix now has ${matrices[index].length} frames`);
 			return matrices;
 		});
 		matrixHistory.update((history) => {
-			history.push([index, matrixData]);
+			const currentMatrices = $matrix;
+			history.push([index, currentMatrices]);
 			return history;
 		});
 
@@ -536,7 +557,7 @@
 		return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 	}
 
-	function updateMatrixDisplay(panelData: number[][]) {
+	function updateMatrixDisplay(panelData: number[][], updateMatrix = true) {
 		const matrixData = Array.from({ length: $rows }, () =>
 			Array($columns).fill(0),
 		);
@@ -549,8 +570,13 @@
 			const col = i % $columns;
 			const row = Math.floor(i / $columns);
 
-			if (row < panelData.length && col < panelData[row].length) {
+			if (
+				panelData &&
+				row < panelData.length &&
+				col < panelData[row].length
+			) {
 				const color = panelData[row][col];
+
 				let hexString = color.toString(16);
 				while (hexString.length < 6) hexString = "0" + hexString;
 				const hexColor = color === 0 ? "#000000" : `#${hexString}`;
@@ -560,8 +586,15 @@
 			}
 		});
 
+		if (!updateMatrix) return;
 		matrix.update((matrices) => {
-			matrices[index] = matrixData;
+			if (!matrices[index]) {
+				matrices[index] = [];
+			}
+			if (!matrices[index][$currentFrame]) {
+				matrices[index][$currentFrame] = [];
+			}
+			matrices[index][$currentFrame] = matrixData;
 			return matrices;
 		});
 	}
@@ -575,8 +608,45 @@
 					panelData: number[][];
 				}>;
 				const panelData = customEvent.detail.panelData;
-				updateMatrixDisplay(panelData);
+				updateMatrixDisplay(panelData, false);
 			});
+
+		currentFrame.subscribe((frame) => {
+			console.log(`Switching to frame ${frame}`);
+
+			if ($matrix[index]) {
+				if ($matrix[index][frame]) {
+					updateMatrixDisplay($matrix[index][frame], false);
+				} else {
+					const emptyFrame = Array.from({ length: $rows }, () =>
+						Array($columns).fill(0),
+					);
+
+					matrix.update((matrices) => {
+						if (!matrices[index]) {
+							matrices[index] = [];
+						}
+						matrices[index][frame] = emptyFrame;
+						return matrices;
+					});
+
+					updateMatrixDisplay(emptyFrame, false);
+				}
+			} else {
+				// Handle case where panel doesn't exist
+				const emptyFrame = Array.from({ length: $rows }, () =>
+					Array($columns).fill(0),
+				);
+
+				matrix.update((matrices) => {
+					matrices[index] = [];
+					matrices[index][frame] = emptyFrame;
+					return matrices;
+				});
+
+				updateMatrixDisplay(emptyFrame, false);
+			}
+		});
 	});
 </script>
 

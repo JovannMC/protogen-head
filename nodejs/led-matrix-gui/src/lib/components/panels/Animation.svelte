@@ -78,6 +78,10 @@
 		isDragging = false;
 	}
 
+	function handleMouseLeave() {
+		isDragging = false;
+	}
+
 	function selectFrame(event: MouseEvent) {
 		const timeline = event.currentTarget as HTMLElement;
 		const rect = timeline.getBoundingClientRect();
@@ -154,6 +158,7 @@
 			onmousedown={handleMouseDown}
 			onmousemove={handleMouseMove}
 			onmouseup={handleMouseUp}
+			onmouseleave={handleMouseLeave}
 			role="slider"
 			aria-valuemin="0"
 			aria-valuemax={totalFrames - 1}
