@@ -36,9 +36,7 @@
 	let originalPixelColors = new Map<string, string>();
 
 	currentTool.subscribe((value) => {
-		if (value === "picker" && tool !== "picker") {
-			previousTool = tool;
-		}
+		if (value === "picker" && tool !== "picker") previousTool = tool;
 		tool = value;
 
 		// set the selected tool
@@ -118,9 +116,7 @@
 				if (targetPixel) setPixelColor(targetPixel, color);
 				if (r >= 0 && r < $rows && c >= 0 && c < $columns) {
 					matrix.update((matrices) => {
-						if (!matrices[index]) {
-							matrices[index] = [];
-						}
+						if (!matrices[index]) matrices[index] = [];
 						if (!matrices[index][$currentFrame]) {
 							matrices[index][$currentFrame] = Array($rows)
 								.fill(0)
@@ -231,9 +227,7 @@
 		}
 
 		// For shape tools, finalize the drawing
-		if (["line", "rectangle", "ellipse"].includes(tool)) {
-			applyFinalShape();
-		}
+		if (["line", "rectangle", "ellipse"].includes(tool)) applyFinalShape();
 
 		isDragging = false;
 		startPixel = null;
@@ -558,7 +552,7 @@
 		return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 	}
 
-	function updateMatrixDisplay(panelData: number[][], updateMatrix = true) {
+	function updateMatrixDisplay(panelData: number[][], updateStore = true) {
 		const matrixData = Array.from({ length: $rows }, () =>
 			Array($columns).fill(0),
 		);
@@ -588,11 +582,9 @@
 			}
 		});
 
-		if (!updateMatrix) return;
+		if (!updateStore) return;
 		matrix.update((matrices) => {
-			if (!matrices[index]) {
-				matrices[index] = [];
-			}
+			if (!matrices[index]) matrices[index] = [];
 			if (!matrices[index][$currentFrame]) {
 				matrices[index][$currentFrame] = [];
 			}
@@ -625,9 +617,7 @@
 					);
 
 					matrix.update((matrices) => {
-						if (!matrices[index]) {
-							matrices[index] = [];
-						}
+						if (!matrices[index]) matrices[index] = [];
 						matrices[index][frame] = emptyFrame;
 						return matrices;
 					});

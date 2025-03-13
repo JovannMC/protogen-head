@@ -9,6 +9,7 @@
 		currentFrame,
 		type MatrixData,
 		totalFrames,
+		type LEDMatrix,
 	} from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
@@ -127,7 +128,6 @@
 			console.error(`Failed to import data: ${err}`);
 		}
 	}
-
 	async function handleExport() {
 		try {
 			console.log("Opening file dialog for export...");
@@ -135,9 +135,17 @@
 				filters: [{ name: "JSON", extensions: ["json"] }],
 			});
 			if (filePath) {
+				const matrixData = $matrix.map((panel) => {
+					const paddedPanel = [...panel];
+					while (paddedPanel.length < $totalFrames) {
+						paddedPanel.push(null as unknown as LEDMatrix);
+					}
+					return paddedPanel;
+				});
+
 				const data = JSON.stringify(
-					$matrix,
-					(key, value) => {
+					matrixData,
+					(_, value) => {
 						if (
 							Array.isArray(value) &&
 							typeof value[0] === "number"
