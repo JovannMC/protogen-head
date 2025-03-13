@@ -1,19 +1,26 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
-	import { currentFrame, selectedFPS, totalFrames } from "$lib/stores";
+	import {
+		currentFrame,
+		matrix,
+		selectedFPS,
+		totalFrames,
+	} from "$lib/stores";
 	import { onMount } from "svelte";
 
 	let isPlaying = false;
 	let isLooping = true;
-	let keyframes: number[] = [0, 30, 60, 90];
+	let keyframes: number[] = [0, $totalFrames - 1];
 	let animationInterval: ReturnType<typeof setInterval>;
 	let isDragging = false;
+	let previousMatrixState: any = null;
 
 	function addKeyframe() {
 		const newFrame = $currentFrame;
 		if (!keyframes.includes(newFrame)) {
 			keyframes = [...keyframes, newFrame].sort((a, b) => a - b);
 			console.log(`Added keyframe at frame ${newFrame}`);
+			interpolateFrames();
 		}
 	}
 
@@ -29,6 +36,7 @@
 			console.log(
 				`Deleted keyframe at frame ${$currentFrame}, moved to ${nearestKeyframe}`,
 			);
+			interpolateFrames();
 		}
 	}
 
@@ -56,6 +64,95 @@
 		isPlaying = false;
 		clearInterval(animationInterval);
 		$currentFrame = 0;
+	}
+
+	function interpolateFrames() {
+		const matrixData = $matrix;
+
+		if (keyframes.length < 2) return;
+
+		for (let panelIndex = 0; panelIndex < matrixData.length; panelIndex++) {
+			for (let i = 0; i < keyframes.length - 1; i++) {
+				const startFrame = keyframes[i];
+				const endFrame = keyframes[i + 1];
+				const frameCount = endFrame - startFrame;
+
+				// Skip if frames are adjacent
+				if (frameCount <= 1) continue;
+
+				const startData = matrixData[panelIndex][startFrame];
+				const endData = matrixData[panelIndex][endFrame];
+
+				// Skip if either keyframe doesn't have data
+				if (!startData || !endData) continue;
+
+				console.log(
+					`Interpolating between frames ${startFrame} and ${endFrame} for panel ${panelIndex}`,
+				);
+
+				// Generate intermediate frames
+				for (let frame = startFrame + 1; frame < endFrame; frame++) {
+					const t = (frame - startFrame) / frameCount; // Interpolation factor (0-1)
+
+					// Create a new frame if it doesn't exist
+					if (!matrixData[panelIndex][frame]) {
+						matrixData[panelIndex][frame] = Array(startData.length)
+							.fill(0)
+							.map(() => Array(startData[0].length).fill(0));
+					}
+
+					// Interpolate each pixel
+					for (let row = 0; row < startData.length; row++) {
+						for (let col = 0; col < startData[row].length; col++) {
+							const startColor = startData[row][col];
+							const endColor = endData[row][col];
+
+							// Skip if both pixels are black (0)
+							if (startColor === 0 && endColor === 0) {
+								matrixData[panelIndex][frame][row][col] = 0;
+								continue;
+							}
+
+							// Interpolate the color
+							matrixData[panelIndex][frame][row][col] =
+								interpolateColor(startColor, endColor, t);
+						}
+					}
+				}
+			}
+		}
+
+		// Update the matrix store
+		matrix.set(matrixData);
+		console.log("Interpolation complete");
+	}
+
+	// Helper function to interpolate between two colors
+	function interpolateColor(
+		startColor: number,
+		endColor: number,
+		t: number,
+	): number {
+		// Extract RGB components
+		const startR = (startColor >> 16) & 0xff;
+		const startG = (startColor >> 8) & 0xff;
+		const startB = startColor & 0xff;
+
+		const endR = (endColor >> 16) & 0xff;
+		const endG = (endColor >> 8) & 0xff;
+		const endB = endColor & 0xff;
+
+		// Interpolate each component
+		const r = Math.round(startR + (endR - startR) * t);
+		const g = Math.round(startG + (endG - startG) * t);
+		const b = Math.round(startB + (endB - startB) * t);
+
+		// Combine back to a single color value
+		return (r << 16) | (g << 8) | b;
+	}
+
+	function isKeyframe(frame: number): boolean {
+		return keyframes.includes(frame);
 	}
 
 	function goToKeyframe(frame: number) {
@@ -92,8 +189,30 @@
 	}
 
 	onMount(() => {
+		const matrixUnsubscribe = matrix.subscribe((matrixData) => {
+			if (previousMatrixState === null) {
+				previousMatrixState = JSON.stringify(matrixData);
+				return;
+			}
+
+			const currentMatrixState = JSON.stringify(matrixData);
+
+			if (
+				currentMatrixState !== previousMatrixState &&
+				isKeyframe($currentFrame)
+			) {
+				console.log(
+					`Keyframe ${$currentFrame} was modified - reinterpolating...`,
+				);
+				interpolateFrames();
+			}
+
+			previousMatrixState = currentMatrixState;
+		});
+
 		return () => {
 			if (animationInterval) clearInterval(animationInterval);
+			matrixUnsubscribe();
 		};
 	});
 </script>
@@ -207,7 +326,9 @@
 				class="w-12 text-center bg-secondary/20 text-secondary rounded"
 			/>
 		</div>
-		<div class="flex flex-col items-center text-xs text-secondary space-y-1">
+		<div
+			class="flex flex-col items-center text-xs text-secondary space-y-1"
+		>
 			<p>Frame:</p>
 			<p>
 				{$currentFrame + 1} /
