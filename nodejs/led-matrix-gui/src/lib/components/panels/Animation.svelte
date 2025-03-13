@@ -1,12 +1,11 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
-	import { currentFrame, selectedFPS } from "$lib/stores";
+	import { currentFrame, selectedFPS, totalFrames } from "$lib/stores";
 	import { onMount } from "svelte";
 
 	let isPlaying = false;
 	let isLooping = true;
 	let keyframes: number[] = [0, 30, 60, 90];
-	let totalFrames = 120;
 	let animationInterval: ReturnType<typeof setInterval>;
 	let isDragging = false;
 
@@ -39,10 +38,10 @@
 		if (isPlaying) {
 			animationInterval = setInterval(() => {
 				$currentFrame++;
-				if ($currentFrame >= totalFrames) {
+				if ($currentFrame >= $totalFrames) {
 					if (isLooping) $currentFrame = 0;
 					else {
-						$currentFrame = totalFrames - 1;
+						$currentFrame = $totalFrames - 1;
 						isPlaying = false;
 						clearInterval(animationInterval);
 					}
@@ -64,13 +63,15 @@
 	}
 
 	function handleMouseDown(event: MouseEvent) {
-		if ((event.target as HTMLElement).tagName.toLowerCase() === 'button') return;
+		if ((event.target as HTMLElement).tagName.toLowerCase() === "button")
+			return;
 		isDragging = true;
 		selectFrame(event);
 	}
 
 	function handleMouseMove(event: MouseEvent) {
-		if ((event.target as HTMLElement).tagName.toLowerCase() === 'button') return;
+		if ((event.target as HTMLElement).tagName.toLowerCase() === "button")
+			return;
 		if (isDragging) selectFrame(event);
 	}
 
@@ -86,8 +87,8 @@
 		const timeline = event.currentTarget as HTMLElement;
 		const rect = timeline.getBoundingClientRect();
 		const x = event.clientX - rect.left;
-		const newFrame = Math.round((x / rect.width) * totalFrames);
-		$currentFrame = Math.min(Math.max(newFrame, 0), totalFrames - 1);
+		const newFrame = Math.round((x / rect.width) * $totalFrames);
+		$currentFrame = Math.min(Math.max(newFrame, 0), $totalFrames - 1);
 	}
 
 	onMount(() => {
@@ -161,14 +162,14 @@
 			onmouseleave={handleMouseLeave}
 			role="slider"
 			aria-valuemin="0"
-			aria-valuemax={totalFrames - 1}
+			aria-valuemax={$totalFrames - 1}
 			aria-valuenow={$currentFrame}
 			tabindex="0"
 		>
-			{#each Array(Math.ceil(totalFrames / 10)) as _, i}
+			{#each Array(Math.ceil($totalFrames / 10)) as _, i}
 				<div
 					class="absolute top-0 left-0 h-full border-l border-secondary/30"
-					style="left: {((i * 10) / totalFrames) * 100}%;"
+					style="left: {((i * 10) / $totalFrames) * 100}%;"
 				>
 					<span
 						class="absolute top-0 left-1/2 -translate-x-1/2 text-secondary/60 text-xs"
@@ -179,13 +180,13 @@
 
 			<div
 				class="absolute top-0 left-0 h-full w-0.5 bg-blue-300 z-10"
-				style="left: {($currentFrame / totalFrames) * 100}%"
+				style="left: {($currentFrame / $totalFrames) * 100}%"
 			></div>
 
 			{#each keyframes as frame}
 				<button
 					class="absolute top-2 left-0 h-4 w-1 rounded-sm -ml-0.5 bg-red-500 hover:bg-red-700 transition-colors"
-					style="left: {(frame / totalFrames) * 100}%; bottom: auto;"
+					style="left: {(frame / $totalFrames) * 100}%; bottom: auto;"
 					onclick={() => goToKeyframe(frame)}
 					aria-label={`Go to keyframe ${frame}`}
 				></button>
@@ -194,9 +195,9 @@
 	</div>
 
 	<!-- Frame settings -->
-	<div class="flex flex-col items-center justify-center w-32 space-y-2">
-		<div class="flex items-center space-x-1">
-			<span class="text-sm text-secondary">FPS:</span>
+	<div class="flex flex-col items-center justify-center w-32 space-y-1">
+		<div class="flex items-center space-x-1 text-sm">
+			<span class="text-xs text-secondary">FPS:</span>
 			<input
 				type="number"
 				id="fps"
@@ -206,8 +207,17 @@
 				class="w-12 text-center bg-secondary/20 text-secondary rounded"
 			/>
 		</div>
-		<div class="text-sm text-secondary">
-			Frame: {$currentFrame} / {totalFrames - 1}
+		<div class="flex flex-col items-center text-xs text-secondary space-y-1">
+			<p>Frame:</p>
+			<p>
+				{$currentFrame + 1} /
+				<input
+					type="number"
+					min="1"
+					class="w-12 text-center bg-secondary/20 text-secondary rounded"
+					bind:value={$totalFrames}
+				/>
+			</p>
 		</div>
 	</div>
 </div>

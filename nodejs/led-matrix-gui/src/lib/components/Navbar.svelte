@@ -8,6 +8,7 @@
 		matrix,
 		currentFrame,
 		type MatrixData,
+		totalFrames,
 	} from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
@@ -74,9 +75,10 @@
 					const colCount =
 						data[0][$currentFrame]?.[0]?.length ||
 						data[0][0]?.[0]?.length;
+					const frameCount = data[0].length;
 
 					console.log(
-						`Detected dimensions: ${panelCount} panels, ${rowCount} rows, ${colCount} columns`,
+						`Detected ${frameCount} frames with dimensions: ${panelCount} panels, ${rowCount} rows, ${colCount} columns`,
 					);
 
 					// Update matrix settings
@@ -87,8 +89,9 @@
 					rows.set(rowCount);
 					rowsElement.value = rowCount.toString();
 
-					// Set the entire matrix data
+					// Set the entire matrix data & frames
 					matrix.set(data);
+					totalFrames.set(frameCount);
 
 					// Update each panel's display
 					for (let i = 0; i < panelCount; i++) {
@@ -116,7 +119,7 @@
 									},
 								}),
 							);
-						}, 100); // Increased timeout to ensure panels are rendered
+						}, 100);
 					}
 				}
 			}

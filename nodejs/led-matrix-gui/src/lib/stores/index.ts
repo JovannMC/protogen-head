@@ -30,6 +30,7 @@ export const currentTool: Writable<Tool> = writable("pen");
 export const currentToolSize = writable(1);
 export const currentAnimation: Writable<Animation> = writable("none");
 export const currentFrame = writable(0);
+export const totalFrames = writable(120);
 export const selectedFPS = writable(30);
 
 export type LEDMatrix = number[][]; // A single 2D grid of LEDs
