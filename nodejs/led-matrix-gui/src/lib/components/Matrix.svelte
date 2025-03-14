@@ -52,8 +52,8 @@
 		element: HTMLElement,
 	): { row: number; col: number } | null {
 		// Extract row and column from dataset
-		const row = parseInt(element.dataset.row || "");
-		const col = parseInt(element.dataset.col || "");
+		const row = +element.dataset.row!;
+		const col = +element.dataset.col!;
 
 		if (isNaN(row) || isNaN(col)) return null;
 		return { row, col };
@@ -545,9 +545,9 @@
 		const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
 		if (!match) return rgb;
 
-		const r = parseInt(match[1]);
-		const g = parseInt(match[2]);
-		const b = parseInt(match[3]);
+		const r = +match[1];
+		const g = +match[2];
+		const b = +match[3];
 
 		return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 	}

@@ -24,12 +24,12 @@
 
 	function validateInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		if (input.value && parseInt(input.value) < 1) input.value = "1";
+		if (input.value && +input.value < 1) input.value = "1";
 	}
 
 	function finishInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		const value = parseInt(input.value) || 1;
+		const value = +input.value || 1;
 		currentToolSize.set(value);
 	}
 

@@ -25,8 +25,7 @@
 
 	function validateInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		if (input.value && parseInt(input.value) < 1)
-			input.value = previousValue;
+		if (input.value && +input.value < 1) input.value = previousValue;
 		else previousValue = input.value;
 	}
 
@@ -35,17 +34,13 @@
 
 		switch (input.id) {
 			case "panels":
-				panels.set(
-					parseInt(input.value) || parseInt(input.placeholder),
-				);
+				panels.set(+input.value || +input.placeholder);
 				break;
 			case "cols":
-				columns.set(
-					parseInt(input.value) || parseInt(input.placeholder),
-				);
+				columns.set(+input.value || +input.placeholder);
 				break;
 			case "rows":
-				rows.set(parseInt(input.value) || parseInt(input.placeholder));
+				rows.set(+input.value || +input.placeholder);
 				break;
 		}
 	}
