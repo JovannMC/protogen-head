@@ -8,6 +8,8 @@
 	} from "$lib/stores";
 	import { onMount } from "svelte";
 
+	let toolContainer: HTMLDivElement;
+
 	function selectTool(event: Event) {
 		const element = event.currentTarget as HTMLButtonElement;
 		const tool = element.getAttribute("aria-label") as Tool;
@@ -32,12 +34,12 @@
 	}
 
 	onMount(() => {
-		const firstTool = document.querySelector("button") as HTMLButtonElement;
-		firstTool.classList.add("selected");
+		// select first tool
+		toolContainer.querySelector("button")?.classList.add("selected");
 	});
 </script>
 
-<div class="panel flex flex-col items-center gap-4">
+<div class="panel flex flex-col items-center gap-4" bind:this={toolContainer}>
 	{#each tools as tool}
 		{@const icon =
 			tool === "line"
