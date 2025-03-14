@@ -9,6 +9,7 @@
 		matrix,
 		matrixHistory,
 		currentFrame,
+		isDrawingMatrix,
 	} from "$lib/stores";
 	import { onDestroy, onMount } from "svelte";
 	import { get } from "svelte/store";
@@ -28,7 +29,6 @@
 	let matrixContainer: HTMLElement;
 	let currentFrameUnsubscribe: () => void;
 
-	let isDragging = false;
 	let tool = $currentTool;
 	let previousTool: typeof tool = $currentTool;
 	let startPixel: { row: number; col: number } | null = null;
@@ -178,7 +178,7 @@
 			if (!pixel) return;
 		}
 
-		isDragging = true;
+		isDrawingMatrix.set(true);
 
 		const coords = getPixelCoordinates(pixel);
 		if (!coords) return;
@@ -197,7 +197,7 @@
 	}
 
 	function handleMouseMove(event: MouseEvent) {
-		if (!isDragging) return;
+		if (!$isDrawingMatrix) return;
 
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -221,15 +221,15 @@
 	}
 
 	const handleMouseUp = () => {
-		if (!isDragging || !startPixel || !endPixel) {
-			isDragging = false;
+		if (!$isDrawingMatrix || !startPixel || !endPixel) {
+			$isDrawingMatrix = false;
 			return;
 		}
 
 		// For shape tools, finalize the drawing
 		if (["line", "rectangle", "ellipse"].includes(tool)) applyFinalShape();
 
-		isDragging = false;
+		$isDrawingMatrix = false;
 		startPixel = null;
 		endPixel = null;
 		originalPixelColors.clear();

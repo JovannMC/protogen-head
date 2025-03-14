@@ -4,6 +4,7 @@ export const panels = writable(1);
 export const columns = writable(64);
 export const rows = writable(32);
 
+export const isDrawingMatrix = writable(false);
 export const matrix = writable<MatrixData>([
 	[
 		Array(32)

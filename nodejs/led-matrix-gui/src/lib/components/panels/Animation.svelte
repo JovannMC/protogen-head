@@ -2,6 +2,7 @@
 	import Icon from "@iconify/svelte";
 	import {
 		currentFrame,
+		isDrawingMatrix,
 		matrix,
 		selectedFPS,
 		totalFrames,
@@ -13,30 +14,73 @@
 	let keyframes: number[] = [0, $totalFrames - 1];
 	let animationInterval: ReturnType<typeof setInterval>;
 	let isDragging = false;
-	let previousMatrixState: any = null;
+	let previousKeyframes: Record<number, string> = {};
+	let isInterpolating = false;
 
 	function addKeyframe() {
 		const newFrame = $currentFrame;
 		if (!keyframes.includes(newFrame)) {
-			keyframes = [...keyframes, newFrame].sort((a, b) => a - b);
+			const insertIndex = keyframes.findIndex(
+				(frame) => frame > newFrame,
+			);
+			const position =
+				insertIndex === -1 ? keyframes.length : insertIndex;
+
+			// Add the keyframe
+			keyframes = [
+				...keyframes.slice(0, position),
+				newFrame,
+				...keyframes.slice(position),
+			];
 			console.log(`Added keyframe at frame ${newFrame}`);
-			interpolateFrames();
+
+			// Get the previous and next keyframes
+			const prevKeyframe = position > 0 ? keyframes[position - 1] : null;
+			const nextKeyframe =
+				position < keyframes.length - 1
+					? keyframes[position + 1]
+					: null;
+
+			// Only interpolate the affected ranges
+			if (prevKeyframe !== null)
+				interpolateFrameRange(prevKeyframe, newFrame);
+			if (nextKeyframe !== null)
+				interpolateFrameRange(newFrame, nextKeyframe);
 		}
 	}
 
 	function deleteKeyframe() {
 		if (keyframes.length > 1 && keyframes.includes($currentFrame)) {
+			// Find index of the keyframe to delete
+			const deleteIndex = keyframes.indexOf($currentFrame);
+
+			// Get adjacent keyframes before deletion
+			const prevKeyframe =
+				deleteIndex > 0 ? keyframes[deleteIndex - 1] : null;
+			const nextKeyframe =
+				deleteIndex < keyframes.length - 1
+					? keyframes[deleteIndex + 1]
+					: null;
+
+			// Delete the keyframe
 			keyframes = keyframes.filter((frame) => frame !== $currentFrame);
+
+			// Move to nearest keyframe
 			const nearestKeyframe = keyframes.reduce((prev, curr) =>
 				Math.abs(curr - $currentFrame) < Math.abs(prev - $currentFrame)
 					? curr
 					: prev,
 			);
 			$currentFrame = nearestKeyframe;
+
 			console.log(
 				`Deleted keyframe at frame ${$currentFrame}, moved to ${nearestKeyframe}`,
 			);
-			interpolateFrames();
+
+			// Interpolate between the now-adjacent keyframes
+			if (prevKeyframe !== null && nextKeyframe !== null) {
+				interpolateFrameRange(prevKeyframe, nextKeyframe);
+			}
 		}
 	}
 
@@ -66,68 +110,56 @@
 		$currentFrame = 0;
 	}
 
-	function interpolateFrames() {
+	function interpolateFrameRange(startFrame: number, endFrame: number) {
+		isInterpolating = true;
 		const matrixData = $matrix;
-
-		if (keyframes.length < 2) return;
+		const frameCount = endFrame - startFrame;
+		if (frameCount <= 1) return;
 
 		for (let panelIndex = 0; panelIndex < matrixData.length; panelIndex++) {
-			for (let i = 0; i < keyframes.length - 1; i++) {
-				const startFrame = keyframes[i];
-				const endFrame = keyframes[i + 1];
-				const frameCount = endFrame - startFrame;
+			const startData = matrixData[panelIndex][startFrame];
+			const endData = matrixData[panelIndex][endFrame];
+			if (!startData || !endData) continue;
 
-				// Skip if frames are adjacent
-				if (frameCount <= 1) continue;
+			console.log(
+				`Interpolating between frames ${startFrame} and ${endFrame} for panel ${panelIndex}`,
+			);
 
-				const startData = matrixData[panelIndex][startFrame];
-				const endData = matrixData[panelIndex][endFrame];
+			// Generate intermediate frames
+			for (let frame = startFrame + 1; frame < endFrame; frame++) {
+				const t = (frame - startFrame) / frameCount; // Interpolation factor (0-1)
 
-				// Skip if either keyframe doesn't have data
-				if (!startData || !endData) continue;
+				// Create a new frame if it doesn't exist
+				if (!matrixData[panelIndex][frame]) {
+					matrixData[panelIndex][frame] = Array(startData.length)
+						.fill(0)
+						.map(() => Array(startData[0].length).fill(0));
+				}
 
-				console.log(
-					`Interpolating between frames ${startFrame} and ${endFrame} for panel ${panelIndex}`,
-				);
+				// Interpolate each pixel
+				for (let row = 0; row < startData.length; row++) {
+					for (let col = 0; col < startData[row].length; col++) {
+						const startColor = startData[row][col];
+						const endColor = endData[row][col];
 
-				// Generate intermediate frames
-				for (let frame = startFrame + 1; frame < endFrame; frame++) {
-					const t = (frame - startFrame) / frameCount; // Interpolation factor (0-1)
-
-					// Create a new frame if it doesn't exist
-					if (!matrixData[panelIndex][frame]) {
-						matrixData[panelIndex][frame] = Array(startData.length)
-							.fill(0)
-							.map(() => Array(startData[0].length).fill(0));
-					}
-
-					// Interpolate each pixel
-					for (let row = 0; row < startData.length; row++) {
-						for (let col = 0; col < startData[row].length; col++) {
-							const startColor = startData[row][col];
-							const endColor = endData[row][col];
-
-							// Skip if both pixels are black (0)
-							if (startColor === 0 && endColor === 0) {
-								matrixData[panelIndex][frame][row][col] = 0;
-								continue;
-							}
-
-							// Interpolate the color
-							matrixData[panelIndex][frame][row][col] =
-								interpolateColor(startColor, endColor, t);
+						// Skip if both pixels are black (0)
+						if (startColor === 0 && endColor === 0) {
+							matrixData[panelIndex][frame][row][col] = 0;
+							continue;
 						}
+
+						// Interpolate the color
+						matrixData[panelIndex][frame][row][col] =
+							interpolateColor(startColor, endColor, t);
 					}
 				}
 			}
 		}
 
-		// Update the matrix store
-		matrix.set(matrixData);
-		console.log("Interpolation complete");
+		matrix.update((m) => m);
+		isInterpolating = false;
 	}
 
-	// Helper function to interpolate between two colors
 	function interpolateColor(
 		startColor: number,
 		endColor: number,
@@ -190,24 +222,63 @@
 
 	onMount(() => {
 		const matrixUnsubscribe = matrix.subscribe((matrixData) => {
-			if (previousMatrixState === null) {
-				previousMatrixState = JSON.stringify(matrixData);
-				return;
+			if (isInterpolating || $isDrawingMatrix) return;
+
+			if (isKeyframe($currentFrame)) {
+				try {
+					// Get stringified data for just this frame
+					const currentKeyframeData = matrixData
+						.map((panel) =>
+							panel && panel[$currentFrame]
+								? JSON.stringify(panel[$currentFrame])
+								: null,
+						)
+						.join("|");
+
+					// Check if this frame has changed by comparing strings
+					if (
+						!previousKeyframes[$currentFrame] ||
+						previousKeyframes[$currentFrame] !== currentKeyframeData
+					) {
+						console.log(
+							`Keyframe ${$currentFrame} was modified - reinterpolating...`,
+						);
+
+						previousKeyframes[$currentFrame] = currentKeyframeData;
+
+						// Only interpolate between affected keyframes
+						const keyframeIndex = keyframes.indexOf($currentFrame);
+						if (keyframeIndex >= 0) {
+							const prevKeyframe =
+								keyframeIndex > 0
+									? keyframes[keyframeIndex - 1]
+									: null;
+							const nextKeyframe =
+								keyframeIndex < keyframes.length - 1
+									? keyframes[keyframeIndex + 1]
+									: null;
+
+							if (prevKeyframe !== null)
+								interpolateFrameRange(
+									prevKeyframe,
+									$currentFrame,
+								);
+							if (nextKeyframe !== null)
+								interpolateFrameRange(
+									$currentFrame,
+									nextKeyframe,
+								);
+						}
+					}
+				} catch (err) {
+					console.error(`Error processing matrix update: ${err}`);
+				}
 			}
 
-			const currentMatrixState = JSON.stringify(matrixData);
-
-			if (
-				currentMatrixState !== previousMatrixState &&
-				isKeyframe($currentFrame)
-			) {
-				console.log(
-					`Keyframe ${$currentFrame} was modified - reinterpolating...`,
-				);
-				interpolateFrames();
-			}
-
-			previousMatrixState = currentMatrixState;
+			return () => {
+				if (animationInterval) clearInterval(animationInterval);
+				matrixUnsubscribe();
+			};
 		});
 
 		return () => {
