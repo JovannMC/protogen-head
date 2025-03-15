@@ -3,7 +3,12 @@
 	import * as Panel from "$lib/components/panels";
 
 	import { panels, columns, rows, matrix, currentFrame } from "$lib/stores";
-	import { undo, redo, initHistory, limitHistorySize } from "$lib/history";
+	import {
+		undo,
+		redo,
+		initHistory,
+		limitHistorySize,
+	} from "$lib/utils/history";
 	import { onMount } from "svelte";
 
 	$effect(() => {

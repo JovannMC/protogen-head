@@ -8,6 +8,11 @@
 		totalFrames,
 	} from "$lib/stores";
 	import { onMount } from "svelte";
+	import { interpolateFrameRange } from "$lib/utils/interpolation";
+
+	// TODO: click and drag keyframes to move (or select multiple to delete)
+	// TODO: interpolation type (linear, ease-in, ease-out, disabled, etc.)
+	// TODO: duplicate keyframes (right click menu)
 
 	let isPlaying = false;
 	let isLooping = true;
@@ -42,10 +47,12 @@
 					: null;
 
 			// Only interpolate the affected ranges
-			if (prevKeyframe !== null)
-				interpolateFrameRange(prevKeyframe, newFrame);
-			if (nextKeyframe !== null)
-				interpolateFrameRange(newFrame, nextKeyframe);
+			if (prevKeyframe !== null) {
+				interpolateFrameRange(prevKeyframe, newFrame, $matrix);
+			}
+			if (nextKeyframe !== null) {
+				interpolateFrameRange(newFrame, nextKeyframe, $matrix);
+			}
 		}
 	}
 
@@ -79,7 +86,7 @@
 
 			// Interpolate between the now-adjacent keyframes
 			if (prevKeyframe !== null && nextKeyframe !== null) {
-				interpolateFrameRange(prevKeyframe, nextKeyframe);
+				interpolateFrameRange(prevKeyframe, nextKeyframe, $matrix);
 			}
 		}
 	}
@@ -110,87 +117,6 @@
 		$currentFrame = 0;
 	}
 
-	function interpolateFrameRange(startFrame: number, endFrame: number) {
-		isInterpolating = true;
-		const matrixData = $matrix;
-		const frameCount = endFrame - startFrame;
-		if (frameCount <= 1) return;
-
-		for (let panelIndex = 0; panelIndex < matrixData.length; panelIndex++) {
-			const startData = matrixData[panelIndex][startFrame];
-			const endData = matrixData[panelIndex][endFrame];
-			if (!startData || !endData) continue;
-
-			console.log(
-				`Interpolating between frames ${startFrame} and ${endFrame} for panel ${panelIndex}`,
-			);
-
-			// Generate intermediate frames
-			for (let frame = startFrame + 1; frame < endFrame; frame++) {
-				const t = (frame - startFrame) / frameCount; // Interpolation factor (0-1)
-
-				// Create a new frame if it doesn't exist
-				if (!matrixData[panelIndex][frame]) {
-					matrixData[panelIndex][frame] = Array(startData.length)
-						.fill(0)
-						.map(() => Array(startData[0].length).fill(0));
-				}
-
-				// Interpolate each pixel
-				for (let row = 0; row < startData.length; row++) {
-					for (let col = 0; col < startData[row].length; col++) {
-						const startColor = startData[row][col];
-						const endColor = endData[row][col];
-
-						// Skip if both pixels are black (0)
-						if (startColor === 0 && endColor === 0) {
-							matrixData[panelIndex][frame][row][col] = 0;
-							continue;
-						}
-
-						// Interpolate the color
-						matrixData[panelIndex][frame][row][col] =
-							interpolateColor(startColor, endColor, t);
-					}
-				}
-			}
-		}
-
-		matrix.update((m) => m);
-		isInterpolating = false;
-	}
-
-	function interpolateColor(
-		startColor: number,
-		endColor: number,
-		t: number,
-	): number {
-		// Extract RGB components
-		const startR = (startColor >> 16) & 0xff;
-		const startG = (startColor >> 8) & 0xff;
-		const startB = startColor & 0xff;
-
-		const endR = (endColor >> 16) & 0xff;
-		const endG = (endColor >> 8) & 0xff;
-		const endB = endColor & 0xff;
-
-		// Interpolate each component
-		const r = Math.round(startR + (endR - startR) * t);
-		const g = Math.round(startG + (endG - startG) * t);
-		const b = Math.round(startB + (endB - startB) * t);
-
-		// Combine back to a single color value
-		return (r << 16) | (g << 8) | b;
-	}
-
-	function isKeyframe(frame: number): boolean {
-		return keyframes.includes(frame);
-	}
-
-	function goToKeyframe(frame: number) {
-		$currentFrame = frame;
-	}
-
 	function handleMouseDown(event: MouseEvent) {
 		if ((event.target as HTMLElement).tagName.toLowerCase() === "button")
 			return;
@@ -202,14 +128,6 @@
 		if ((event.target as HTMLElement).tagName.toLowerCase() === "button")
 			return;
 		if (isDragging) selectFrame(event);
-	}
-
-	function handleMouseUp() {
-		isDragging = false;
-	}
-
-	function handleMouseLeave() {
-		isDragging = false;
 	}
 
 	function selectFrame(event: MouseEvent) {
@@ -224,7 +142,7 @@
 		const matrixUnsubscribe = matrix.subscribe((matrixData) => {
 			if (isInterpolating || $isDrawingMatrix) return;
 
-			if (isKeyframe($currentFrame)) {
+			if (keyframes.includes($currentFrame)) {
 				try {
 					// Get stringified data for just this frame
 					const currentKeyframeData = matrixData
@@ -262,11 +180,13 @@
 								interpolateFrameRange(
 									prevKeyframe,
 									$currentFrame,
+									matrixData,
 								);
 							if (nextKeyframe !== null)
 								interpolateFrameRange(
 									$currentFrame,
 									nextKeyframe,
+									matrixData,
 								);
 						}
 					}
@@ -348,8 +268,8 @@
 			class="h-12 bg-secondary/20 rounded relative"
 			onmousedown={handleMouseDown}
 			onmousemove={handleMouseMove}
-			onmouseup={handleMouseUp}
-			onmouseleave={handleMouseLeave}
+			onmouseup={() => (isDragging = false)}
+			onmouseleave={() => (isDragging = false)}
 			role="slider"
 			aria-valuemin="0"
 			aria-valuemax={$totalFrames - 1}
@@ -377,7 +297,7 @@
 				<button
 					class="absolute top-2 left-0 h-4 w-1 rounded-sm -ml-0.5 bg-red-500 hover:bg-red-700 transition-colors"
 					style="left: {(frame / $totalFrames) * 100}%; bottom: auto;"
-					onclick={() => goToKeyframe(frame)}
+					onclick={() => ($currentFrame = frame)}
 					aria-label={`Go to keyframe ${frame}`}
 				></button>
 			{/each}

@@ -8,6 +8,10 @@ export const futureStates = writable<[number, any[]][]>([]);
 // it works for simple undos (1-2), but as soon as you start drawing again itll break and you wont be able to redo
 // i don't think i'm gonna bother lmfao
 
+// update 2025/03/15:
+// okay it's pretty much broken, i'm not gonna bother lmao
+// at least you can do a simple undo just in case, but ofc for anything else, screw me!
+
 export function addToHistory(panelIndex: number, matrices: any[]) {
 	console.log(`Adding to history for panel ${panelIndex}`);
 
