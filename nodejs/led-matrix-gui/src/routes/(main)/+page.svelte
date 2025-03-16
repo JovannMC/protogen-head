@@ -8,6 +8,8 @@
 		redo,
 		initHistory,
 		limitHistorySize,
+		copy,
+		paste,
 	} from "$lib/utils/history";
 	import { onMount } from "svelte";
 
@@ -16,7 +18,12 @@
 	});
 
 	onMount(() => {
-		const keyState = { ctrlZ: false, ctrlY: false };
+		const keyState = {
+			ctrlZ: false,
+			ctrlY: false,
+			ctrlC: false,
+			ctrlV: false,
+		};
 
 		document.addEventListener("keydown", (event) => {
 			if (event.ctrlKey && event.key === "z" && !keyState.ctrlZ) {
@@ -25,15 +32,25 @@
 			} else if (event.ctrlKey && event.key === "y" && !keyState.ctrlY) {
 				keyState.ctrlY = true;
 				redo();
+			} else if (event.ctrlKey && event.key === "c" && !keyState.ctrlC) {
+				keyState.ctrlC = true;
+				copy();
+			} else if (event.ctrlKey && event.key === "v" && !keyState.ctrlV) {
+				keyState.ctrlV = true;
+				paste();
 			}
 		});
 
 		document.addEventListener("keyup", (event) => {
 			if (event.key === "z") keyState.ctrlZ = false;
 			if (event.key === "y") keyState.ctrlY = false;
+			if (event.key === "c") keyState.ctrlC = false;
+			if (event.key === "v") keyState.ctrlV = false;
 			if (!event.ctrlKey) {
 				keyState.ctrlZ = false;
 				keyState.ctrlY = false;
+				keyState.ctrlC = false;
+				keyState.ctrlV = false;
 			}
 		});
 

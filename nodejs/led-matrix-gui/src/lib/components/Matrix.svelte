@@ -19,7 +19,7 @@
 	} from "$lib/utils/drawing";
 	import { applyTool, getPixelCoordinates, getPixelFromCoords, rgbToHex, updateMatrixDisplay } from "$lib/utils/matrix";
 
-	// i'll be honest, i used ai for a lot of this because i wouldn't be able to figure this out because i'm dumb
+// i'll be honest, i used ai for a lot of the tool code because i wouldn't be able to figure many of the tools out because i'm dumb
 	// not like anyone else is gonna use it so.. yeah. if it works it works ig
 	// i'm sorry in advance
 	// -jovann
