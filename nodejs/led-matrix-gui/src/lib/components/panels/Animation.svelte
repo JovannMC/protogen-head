@@ -22,6 +22,8 @@
 	let isDragging = false;
 	let previousKeyframes: Record<number, string> = {};
 
+	let lastClickTime: Record<string, number | null> = {};
+
 	function addKeyframe() {
 		const newFrame = $currentFrame;
 		if (!keyframes.includes(newFrame)) {
@@ -57,6 +59,17 @@
 	}
 
 	function deleteKeyframe() {
+		const currentTime = Date.now();
+		if (lastClickTime["delete"] && currentTime - lastClickTime["delete"] < 300) {
+			console.log("Double click detected, clearing keyframes.");
+			keyframes = [];
+			previousKeyframes = {};
+			lastClickTime["delete"] = null;
+			return;
+		} else {
+			lastClickTime["delete"] = currentTime;
+		}
+
 		if (keyframes.length > 1 && keyframes.includes($currentFrame)) {
 			// Find index of the keyframe to delete
 			const deleteIndex = keyframes.indexOf($currentFrame);
@@ -88,6 +101,35 @@
 			if (prevKeyframe !== null && nextKeyframe !== null) {
 				interpolateFrameRange(prevKeyframe, nextKeyframe, $matrix);
 			}
+		}
+	}
+
+	function clearEverything() {
+		const currentTime = Date.now();
+		if (lastClickTime["clear"] && currentTime - lastClickTime["clear"] < 300) {
+			console.log("Double click detected, clearing everything.");
+			matrix.update((matrices) => {
+				const newMatrices = [...matrices];
+
+				for (
+					let panelIndex = 0;
+					panelIndex < newMatrices.length;
+					panelIndex++
+				) {
+					if (newMatrices[panelIndex]) {
+						newMatrices[panelIndex] = newMatrices[panelIndex].map(
+							() =>
+								Array.from({ length: $totalFrames }, () => []),
+						);
+					}
+				}
+
+				return newMatrices;
+			});
+			lastClickTime["clear"] = null;
+			return;
+		} else {
+			lastClickTime["clear"] = currentTime;
 		}
 	}
 
@@ -268,6 +310,13 @@
 				<label for="loop" class="text-sm text-secondary">Loop</label>
 			</div>
 			<div class="flex gap-1 items-center">
+				<button
+					class="p-1 hover:bg-primary rounded transition-colors duration-200"
+					onclick={clearEverything}
+					aria-label="Add keyframe"
+				>
+					<Icon icon="bi:trash" width="16" class="text-red-400 " />
+				</button>
 				<button
 					class="p-1 hover:bg-primary rounded transition-colors duration-200"
 					onclick={addKeyframe}
