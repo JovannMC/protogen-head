@@ -6,12 +6,13 @@
 		matrix,
 		selectedFPS,
 		totalFrames,
+		interpolate,
+		interpolationType,
 	} from "$lib/stores";
 	import { onMount } from "svelte";
 	import { interpolateFrameRange } from "$lib/utils/interpolation";
 
 	// TODO: click and drag keyframes to move (or select multiple to delete)
-	// TODO: interpolation type (linear, ease-in, ease-out, disabled, etc.)
 	// TODO: duplicate keyframes (right click menu)
 
 	let isPlaying = false;
@@ -20,7 +21,6 @@
 	let animationInterval: ReturnType<typeof setInterval>;
 	let isDragging = false;
 	let previousKeyframes: Record<number, string> = {};
-	let isInterpolating = false;
 
 	function addKeyframe() {
 		const newFrame = $currentFrame;
@@ -140,7 +140,7 @@
 
 	onMount(() => {
 		const matrixUnsubscribe = matrix.subscribe((matrixData) => {
-			if (isInterpolating || $isDrawingMatrix) return;
+			if ($isDrawingMatrix) return;
 
 			if (keyframes.includes($currentFrame)) {
 				try {
@@ -210,42 +210,63 @@
 
 <div class="panel-row bg-tertiary rounded-lg flex h-full gap-2 p-4">
 	<!-- Playback controls -->
-	<div class="flex flex-col items-center justify-center w-24">
-		<div>
-			<button
-				class="p-1 rounded-full hover:bg-primary transition-colors duration-200"
-				onclick={togglePlay}
-				aria-label={isPlaying ? "Pause" : "Play"}
-			>
-				<Icon
-					icon={isPlaying ? "mdi:pause" : "mdi:play"}
-					width="24"
-					class="text-secondary"
-				/>
-			</button>
-			<button
-				class="p-1 rounded-full hover:bg-primary transition-colors duration-200"
-				onclick={stop}
-				aria-label="Stop"
-			>
-				<Icon icon="mdi:stop" width="24" class="text-secondary" />
-			</button>
-		</div>
+	<div class="flex flex-col items-center justify-center w-24 gap-2">
 		<div>
 			<input
 				type="checkbox"
-				id="loop"
-				bind:checked={isLooping}
-				class="rounded"
+				id="interpolate"
+				bind:checked={$interpolate}
 			/>
-			<label for="loop" class="text-sm text-secondary">Loop</label>
+			<label for="interpolate" class="text-sm text-secondary"
+				>Interpolate</label
+			>
+		</div>
+		<div>
+			<select
+				id="interpolationType"
+				bind:value={$interpolationType}
+				class="w-min h-8 !text-xs"
+				disabled={!$interpolate}
+			>
+				<option value="linear">Linear</option>
+				<option value="ease-in">Ease-In</option>
+				<option value="ease-out">Ease-Out</option>
+			</select>
 		</div>
 	</div>
 
 	<!-- Timeline-->
 	<div class="flex-1 flex flex-col justify-center full">
 		<div class="flex items-center justify-between text-secondary mb-1">
-			<div class="text-sm font-bold">Timeline</div>
+			<div>
+				<button
+					class="p-1 rounded-full hover:bg-primary transition-colors duration-200"
+					onclick={togglePlay}
+					aria-label={isPlaying ? "Pause" : "Play"}
+				>
+					<Icon
+						icon={isPlaying ? "mdi:pause" : "mdi:play"}
+						width="24"
+						class="text-secondary"
+					/>
+				</button>
+				<button
+					class="p-1 rounded-full hover:bg-primary transition-colors duration-200"
+					onclick={stop}
+					aria-label="Stop"
+				>
+					<Icon icon="mdi:stop" width="24" class="text-secondary" />
+				</button>
+			</div>
+			<div>
+				<input
+					type="checkbox"
+					id="loop"
+					bind:checked={isLooping}
+					class="rounded"
+				/>
+				<label for="loop" class="text-sm text-secondary">Loop</label>
+			</div>
 			<div class="flex gap-1 items-center">
 				<button
 					class="p-1 hover:bg-primary rounded transition-colors duration-200"

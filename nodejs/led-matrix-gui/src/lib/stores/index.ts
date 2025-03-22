@@ -33,6 +33,8 @@ export const currentAnimation: Writable<Animation> = writable("none");
 export const currentFrame = writable(0);
 export const totalFrames = writable(120);
 export const selectedFPS = writable(30);
+export const interpolate = writable(true);
+export const interpolationType = writable("linear");
 
 export type LEDMatrix = number[][]; // A single 2D grid of LEDs
 export type PanelFrames = LEDMatrix[]; // All frames for a single panel

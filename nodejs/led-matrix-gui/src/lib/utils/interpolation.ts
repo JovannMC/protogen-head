@@ -1,4 +1,9 @@
+import { get } from "svelte/store";
+import { interpolate } from "../stores/index";
+
 export function interpolateFrameRange(startFrame: number, endFrame: number, matrixData: any) {
+    if (!get(interpolate) || startFrame < 0 || endFrame < 0) return;
+
     const frameCount = endFrame - startFrame;
     if (frameCount <= 1) return;
 
