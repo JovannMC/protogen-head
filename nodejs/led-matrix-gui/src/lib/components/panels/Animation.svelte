@@ -14,6 +14,7 @@
 
 	// TODO: click and drag keyframes to move (or select multiple to delete)
 	// TODO: duplicate keyframes (right click menu)
+	// TODO: popup/toast system
 
 	let isPlaying = false;
 	let isLooping = true;
@@ -60,7 +61,10 @@
 
 	function deleteKeyframe() {
 		const currentTime = Date.now();
-		if (lastClickTime["delete"] && currentTime - lastClickTime["delete"] < 300) {
+		if (
+			lastClickTime["delete"] &&
+			currentTime - lastClickTime["delete"] < 300
+		) {
 			console.log("Double click detected, clearing keyframes.");
 			keyframes = [];
 			previousKeyframes = {};
@@ -106,7 +110,10 @@
 
 	function clearEverything() {
 		const currentTime = Date.now();
-		if (lastClickTime["clear"] && currentTime - lastClickTime["clear"] < 300) {
+		if (
+			lastClickTime["clear"] &&
+			currentTime - lastClickTime["clear"] < 300
+		) {
 			console.log("Double click detected, clearing everything.");
 			matrix.update((matrices) => {
 				const newMatrices = [...matrices];
@@ -270,9 +277,11 @@
 				class="w-min h-8 !text-xs"
 				disabled={!$interpolate}
 			>
-				<option value="linear">Linear</option>
-				<option value="ease-in">Ease-In</option>
-				<option value="ease-out">Ease-Out</option>
+				<option value="ease">Ease</option>
+				<option value="scroll-rtl">Scroll RTL</option>
+				<option value="scroll-ltr">Scroll LTR</option>
+				<option value="scroll-ttb">Scroll TTB</option>
+				<option value="scroll-btt">Scroll BTT</option>
 			</select>
 		</div>
 	</div>
