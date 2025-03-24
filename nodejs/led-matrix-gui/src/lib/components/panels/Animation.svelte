@@ -131,6 +131,25 @@
 					}
 				}
 
+				// updates current frame
+				newMatrices.forEach((_, panelIndex) => {
+					const panel = document.getElementById(
+						`panel-${panelIndex}`,
+					);
+					if (panel) {
+						panel.dispatchEvent(
+							new CustomEvent("update-matrix", {
+								detail: {
+									panelData:
+										newMatrices[panelIndex][
+											$currentFrame
+										] || [],
+								},
+							}),
+						);
+					}
+				});
+
 				return newMatrices;
 			});
 			lastClickTime["clear"] = null;
