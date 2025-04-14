@@ -1,5 +1,12 @@
 import { get, writable } from "svelte/store";
-import { columns, currentFrame, matrix, rows, type LEDMatrix } from "$lib/stores";
+import {
+	columns,
+	currentFrame,
+	matrix,
+	rows,
+	selectedPanel,
+	type LEDMatrix,
+} from "$lib/stores";
 
 export const pastStates = writable<[number, any[]][]>([]);
 export const futureStates = writable<[number, any[]][]>([]);
@@ -98,73 +105,134 @@ export function limitHistorySize(maxSize = 50) {
 }
 
 export function copy() {
-    // Get current frame data from all panels
-    const currentMatrices = get(matrix);
-    const frame = get(currentFrame);
-    
-    // Create deep copy of the current frame data for each panel
-    const copiedData: LEDMatrix[] = currentMatrices.map(panel => {
-        if (panel && panel[frame]) {
-            // Deep copy the 2D array for this panel at the current frame
-            return JSON.parse(JSON.stringify(panel[frame]));
-        }
-        // If no data exists for this panel at this frame, return empty matrix
-        return Array(get(rows)).fill(0).map(() => Array(get(columns)).fill(0));
-    });
-    
-    console.log(`Copied frame ${frame} data from ${copiedData.length} panels`);
-    
-    // Save to the store
-    copiedMatrix.set(copiedData);
+	// Get current frame data from all panels
+	const currentMatrices = get(matrix);
+	const frame = get(currentFrame);
+	const panelIndex = get(selectedPanel);
+
+	let copiedData: LEDMatrix[];
+
+	if (panelIndex === -1) {
+		// Copy data for all panels
+		copiedData = currentMatrices.map((panel) => {
+			if (panel && panel[frame]) {
+				// Deep copy the 2D array for this panel at the current frame
+				return JSON.parse(JSON.stringify(panel[frame]));
+			}
+			// If no data exists for this panel at this frame, return empty matrix
+			return Array(get(rows))
+				.fill(0)
+				.map(() => Array(get(columns)).fill(0));
+		});
+		console.log(
+			`Copied frame ${frame} data from all ${copiedData.length} panels`,
+		);
+	} else {
+		// Copy data for the selected panel only
+		if (currentMatrices[panelIndex] && currentMatrices[panelIndex][frame]) {
+			copiedData = [
+				JSON.parse(JSON.stringify(currentMatrices[panelIndex][frame])),
+			];
+		} else {
+			copiedData = [
+				Array(get(rows))
+					.fill(0)
+					.map(() => Array(get(columns)).fill(0)),
+			];
+		}
+		console.log(`Copied frame ${frame} data from panel ${panelIndex}`);
+	}
+
+	// Save to the store
+	copiedMatrix.set(copiedData);
 }
 
 export function paste() {
-    const copied = get(copiedMatrix);
-    if (copied.length === 0) {
-        console.log("Nothing to paste");
-        return;
-    }
-    
-    const currentMatrices = get(matrix);
-    const frame = get(currentFrame);
-    
-    console.log(`Pasting to frame ${frame}`);
-    
-    try {
-        // Create a deep copy of the current matrix state
-        const newMatrices = JSON.parse(JSON.stringify(currentMatrices));
-        
-        // Update each panel with the copied data
-        copied.forEach((panelData, panelIndex) => {
-            if (panelIndex < newMatrices.length) {
-                // Ensure the frame exists
-                if (!newMatrices[panelIndex][frame]) {
-                    newMatrices[panelIndex][frame] = JSON.parse(JSON.stringify(panelData));
-                } else {
-                    newMatrices[panelIndex][frame] = JSON.parse(JSON.stringify(panelData));
-                }
-                
-                // Dispatch custom event to update the UI
-                setTimeout(() => {
-                    document.getElementById(`panel-${panelIndex}`)?.dispatchEvent(
-                        new CustomEvent("update-matrix", {
-                            detail: {
-                                panelData: newMatrices[panelIndex][frame]
-                            },
-                        }),
-                    );
-                }, 0);
-            }
-        });
-        
-        // Update the matrix store with new data
-        matrix.set(newMatrices);
-        
-        // Add the change to history
-        addToHistory(0, newMatrices);
-        
-        console.log(`Pasted data to ${Math.min(copied.length, currentMatrices.length)} panels`);
-    } catch (err) {
-        console.error(`Error during paste operation: ${err}`);
-    }
+	const copied = get(copiedMatrix);
+	if (copied.length === 0) {
+		console.log("Nothing to paste");
+		return;
+	}
+
+	const currentMatrices = get(matrix);
+	const frame = get(currentFrame);
+	const panelIndex = get(selectedPanel);
+
+	console.log(`Pasting to frame ${frame}`);
+
+	try {
+		// Create a deep copy of the current matrix state
+		const newMatrices = JSON.parse(JSON.stringify(currentMatrices));
+
+		if (panelIndex === -1) {
+			// Update all panels with the copied data
+			copied.forEach((panelData, panelIndex) => {
+				if (panelIndex < newMatrices.length) {
+					// Ensure the frame exists
+					if (!newMatrices[panelIndex][frame]) {
+						newMatrices[panelIndex][frame] = JSON.parse(
+							JSON.stringify(panelData),
+						);
+					} else {
+						newMatrices[panelIndex][frame] = JSON.parse(
+							JSON.stringify(panelData),
+						);
+					}
+
+					// Dispatch custom event to update the UI
+					setTimeout(() => {
+						document
+							.getElementById(`panel-${panelIndex}`)
+							?.dispatchEvent(
+								new CustomEvent("update-matrix", {
+									detail: {
+										panelData:
+											newMatrices[panelIndex][frame],
+									},
+								}),
+							);
+					}, 0);
+				}
+			});
+			console.log(
+				`Pasted data to ${Math.min(copied.length, currentMatrices.length)} panels`,
+			);
+		} else {
+			// Update only the selected panel with the copied data
+			if (panelIndex < newMatrices.length && copied[0]) {
+				if (!newMatrices[panelIndex][frame]) {
+					newMatrices[panelIndex][frame] = JSON.parse(
+						JSON.stringify(copied[0]),
+					);
+				} else {
+					newMatrices[panelIndex][frame] = JSON.parse(
+						JSON.stringify(copied[0]),
+					);
+				}
+
+				// Dispatch custom event to update the UI
+				setTimeout(() => {
+					document
+						.getElementById(`panel-${panelIndex}`)
+						?.dispatchEvent(
+							new CustomEvent("update-matrix", {
+								detail: {
+									panelData: newMatrices[panelIndex][frame],
+								},
+							}),
+						);
+				}, 0);
+
+				console.log(`Pasted data to panel ${panelIndex}`);
+			}
+		}
+
+		// Update the matrix store with new data
+		matrix.set(newMatrices);
+
+		// Add the change to history
+		addToHistory(0, newMatrices);
+	} catch (err) {
+		console.error(`Error during paste operation: ${err}`);
+	}
 }

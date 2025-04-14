@@ -107,14 +107,8 @@
 		console.log("Mirrored vertically (Y axis)");
 	}
 
-	function clearAll() {
-		// reset all LEDs to black (0) in DOM
-		Array.from(document.getElementsByClassName("led")).forEach((led) => {
-			const color = "#000000";
-			(led as HTMLElement).style.backgroundColor = color;
-		});
-
-		// reset all pixels of current frame to black (0)
+	function clear() {
+		// reset LEDs to black (0) in DOM only for the affected panels
 		matrix.update((matrices) => {
 			const newMatrices = [...matrices];
 
@@ -123,7 +117,9 @@
 				panelIndex < newMatrices.length;
 				panelIndex++
 			) {
+				// -1 = all panels
 				if (
+					($selectedPanel === -1 || panelIndex === $selectedPanel) &&
 					newMatrices[panelIndex] &&
 					newMatrices[panelIndex][$currentFrame]
 				) {
@@ -131,7 +127,19 @@
 
 					for (let row = 0; row < frameData.length; row++) {
 						for (let col = 0; col < frameData[row].length; col++) {
-							frameData[row][col] = 0;
+							if (frameData[row][col] !== 0) {
+								frameData[row][col] = 0;
+								const panelDiv = document.getElementById(
+									`panel-${panelIndex}`,
+								);
+								if (panelDiv) {
+									const led = panelDiv.querySelector(
+										`[data-row="${row}"][data-col="${col}"]`,
+									) as HTMLElement;
+									if (led)
+										led.style.backgroundColor = "#000000";
+								}
+							}
 						}
 					}
 				}
@@ -140,7 +148,11 @@
 			return newMatrices;
 		});
 
-		console.log("All pixels cleared");
+		console.log(
+			$selectedPanel === -1
+				? "All pixels cleared"
+				: `Pixels cleared for panel ${$selectedPanel}`,
+		);
 	}
 
 	onMount(() => {
@@ -183,8 +195,8 @@
 
 		<button
 			class="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center hoverable"
-			onclick={clearAll}
-			aria-label="Clear all"
+			onclick={clear}
+			aria-label="Clear"
 		>
 			<Icon icon="bi:trash" class="text-red-400 w-3/4 h-3/4" />
 		</button>
