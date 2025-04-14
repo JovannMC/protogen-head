@@ -14,6 +14,7 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
 	import { getVersion } from "@tauri-apps/api/app";
+	import { readFile } from "@tauri-apps/plugin-fs";
 	import { onMount } from "svelte";
 
 	// TODO: different cols/rows for each panel
@@ -59,13 +60,8 @@
 					await invoke("import_data", { filePath }),
 				);
 				if (data) {
-					console.log(
-						`Imported data: ${JSON.stringify(data).slice(0, 100)}...`,
-					);
-
 					const panelCount = data.length;
 
-					// Get dimensions from the first frame of the first panel
 					const rowCount =
 						data[0][$currentFrame]?.length || data[0][0]?.length;
 					const colCount =
@@ -77,7 +73,6 @@
 						`Detected ${frameCount} frames with dimensions: ${panelCount} panels, ${rowCount} rows, ${colCount} columns`,
 					);
 
-					// Update matrix settings
 					panels.set(panelCount);
 					panelsElement.value = panelCount.toString();
 					columns.set(colCount);
@@ -85,13 +80,10 @@
 					rows.set(rowCount);
 					rowsElement.value = rowCount.toString();
 
-					// Set the entire matrix data & frames
 					matrix.set(data);
 					totalFrames.set(frameCount);
 
-					// Update each panel's display
 					for (let i = 0; i < panelCount; i++) {
-						// Use setTimeout to allow time for matrix to be re-rendered
 						setTimeout(() => {
 							const panel = document.getElementById(`panel-${i}`);
 							if (!panel) {
@@ -101,12 +93,8 @@
 								return;
 							}
 
-							// Send the current frame's data to the panel
 							const frameData =
 								data[i][$currentFrame] || data[i][0];
-							console.log(
-								`Dispatching update-matrix event for panel ${i}, frame ${$currentFrame}`,
-							);
 
 							panel.dispatchEvent(
 								new CustomEvent("update-matrix", {
@@ -157,6 +145,101 @@
 			}
 		} catch (err) {
 			console.error(`Failed to export data: ${err}`);
+		}
+	}
+
+	async function handleImageImport() {
+		try {
+			console.log("Opening file dialog for image import...");
+			const filePath = await open({
+				multiple: false,
+				directory: false,
+				filters: [
+					{
+						name: "Images",
+						extensions: ["png", "jpg", "jpeg", "gif", "bmp"],
+					},
+				],
+			});
+
+			if (filePath) {
+				console.log(`Importing image from ${filePath}`);
+
+				const binary = await readFile(filePath as string);
+				console.log(`Read binary file, length: ${binary.length}`);
+
+				const ext = (filePath as string).split(".").pop();
+				const base64Data = `data:image/${ext};base64,${btoa(String.fromCharCode(...binary))}`;
+				console.log(
+					`Generated base64Data (first 100 chars): ${base64Data.slice(0, 100)}`,
+				);
+
+				try {
+					console.log(
+						`Calling decode_image with panels: ${$panels}, rows: ${$rows}, cols: ${$columns}`,
+					);
+					const panelsData = await invoke("decode_image", {
+						base64Data,
+						panelCount: $panels,
+						rows: $rows,
+						cols: $columns,
+					});
+
+					const data = JSON.parse(panelsData as string);
+					console.log(
+						`Parsed data: ${JSON.stringify(data).slice(0, 200)}`,
+					);
+
+					// convert from RGB to the custom format
+					const convertedData = data.map((panel: LEDMatrix) => {
+						return panel.map((row) => {
+							return row.map((pixel) => {
+								if (
+									Array.isArray(pixel) &&
+									pixel.length === 3
+								) {
+									const [r, g, b] = pixel;
+									return (r << 16) | (g << 8) | b;
+								}
+								return pixel;
+							});
+						});
+					});
+
+					matrix.update((existingMatrix) => {
+						const newMatrix = [...existingMatrix];
+						for (let i = 0; i < $panels; i++) {
+							if (!newMatrix[i]) newMatrix[i] = [];
+							newMatrix[i][$currentFrame] = convertedData[i];
+						}
+						return newMatrix;
+					});
+
+					// update displays for each panel
+					setTimeout(() => {
+						for (let i = 0; i < $panels; i++) {
+							const panel = document.getElementById(`panel-${i}`);
+							if (!panel) {
+								console.error(
+									`Could not find panel-${i} element`,
+								);
+								continue;
+							}
+							panel.dispatchEvent(
+								new CustomEvent("update-matrix", {
+									detail: {
+										panelData: convertedData[i],
+									},
+								}),
+							);
+						}
+					}, 100);
+				} catch (err) {
+					console.error(`Failed to decode image: ${err}`);
+				}
+			}
+		} catch (err) {
+			console.error(`Failed to import image: ${err}`);
 		}
 	}
 
@@ -235,6 +318,14 @@
 			onclick={handleExport}
 		>
 			<Icon icon="mdi:content-save" width={24} />
+		</button>
+
+		<button
+			class="flex items-center justify-center hoverable-lg"
+			onclick={handleImageImport}
+			title="Import from Image"
+		>
+			<Icon icon="mdi:image" width={24} />
 		</button>
 
 		<a href="/about" class="hoverable-lg">
