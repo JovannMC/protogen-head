@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "led-matrix-gui",
+  "productName": "LED Matrix GUI",
   "version": "0.1.1",
   "identifier": "me.jovannmc.ledmatrix",
   "build": {
@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "led-matrix-gui",
+        "title": "LED Matrix GUI",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "devtools": true,
+        "zoomHotkeysEnabled": true
       }
     ],
     "security": {

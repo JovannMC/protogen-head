@@ -4,19 +4,41 @@ export const panels = writable(1);
 export const columns = writable(64);
 export const rows = writable(32);
 
-export const matrix = writable<Matrices>([Array(64).fill(0).map(() => Array(32).fill(0))]);
-type historyEntry = [number, Matrices];
-export const matrixHistory = writable<historyEntry[]>([[0, Array(64).fill(0).map(() => Array(32).fill(0))]]);
+export const isDrawingMatrix = writable(false);
+export const matrix = writable<MatrixData>([
+	[
+		Array(32)
+			.fill(0)
+			.map(() => Array(64).fill(0)),
+	],
+]);
+
+export const matrixHistory = writable<historyEntry[]>([
+	[
+		0,
+		[
+			[
+				Array(32)
+					.fill(0)
+					.map(() => Array(64).fill(0)),
+			],
+		],
+	],
+]);
 
 export const currentColor = writable("#ffffff");
 export const currentTool: Writable<Tool> = writable("pen");
 export const currentToolSize = writable(1);
-export const currentAnimation: Writable<Animation> = writable("none");
 export const currentFrame = writable(0);
+export const totalFrames = writable(120);
 export const selectedFPS = writable(30);
+export const interpolate = writable(true);
+export const interpolationType: Writable<Interpolation> = writable("ease");
 
-export type Matrix = number[][];
-export type Matrices = Matrix[];
+export type LEDMatrix = number[][]; // A single 2D grid of LEDs
+export type PanelFrames = LEDMatrix[]; // All frames for a single panel
+export type MatrixData = PanelFrames[]; // All panels
+export type historyEntry = [number, MatrixData];
 
 export type Tool =
 	| "pen"
@@ -26,7 +48,7 @@ export type Tool =
 	| "eraser"
 	| "fill"
 	| "picker";
-export type Animation = "none" | "fade" | "scroll";
+export type Interpolation = "ease" | "scroll-rtl" | "scroll-ltr" | "scroll-ttb" | "scroll-btt";
 
 export const defaultColors = [
 	"#FF0000",
@@ -49,4 +71,4 @@ export const tools: Tool[] = [
 	"picker",
 ];
 
-export const animations: Animation[] = ["none", "fade", "scroll"];
+export const interpolationTypes: Interpolation[] = ["ease", "scroll-rtl", "scroll-ltr", "scroll-ttb", "scroll-btt"];

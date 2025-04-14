@@ -1,7 +1,16 @@
 <script lang="ts">
 	import Icon from "@iconify/svelte";
 
-	import { panels, columns, rows, matrix, type Matrices } from "$lib/stores";
+	import {
+		panels,
+		columns,
+		rows,
+		matrix,
+		currentFrame,
+		type MatrixData,
+		totalFrames,
+		type LEDMatrix,
+	} from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
 	import { getVersion } from "@tauri-apps/api/app";
@@ -16,8 +25,7 @@
 
 	function validateInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		if (input.value && parseInt(input.value) < 1)
-			input.value = previousValue;
+		if (input.value && +input.value < 1) input.value = previousValue;
 		else previousValue = input.value;
 	}
 
@@ -26,17 +34,13 @@
 
 		switch (input.id) {
 			case "panels":
-				panels.set(
-					parseInt(input.value) || parseInt(input.placeholder),
-				);
+				panels.set(+input.value || +input.placeholder);
 				break;
 			case "cols":
-				columns.set(
-					parseInt(input.value) || parseInt(input.placeholder),
-				);
+				columns.set(+input.value || +input.placeholder);
 				break;
 			case "rows":
-				rows.set(parseInt(input.value) || parseInt(input.placeholder));
+				rows.set(+input.value || +input.placeholder);
 				break;
 		}
 	}
@@ -51,45 +55,67 @@
 			});
 			if (filePath) {
 				console.log(`Importing data from ${filePath}`);
-				const data: Matrices = JSON.parse(
+				const data: MatrixData = JSON.parse(
 					await invoke("import_data", { filePath }),
 				);
 				if (data) {
-					console.log(`Imported data: ${data}`);
+					console.log(
+						`Imported data: ${JSON.stringify(data).slice(0, 100)}...`,
+					);
 
 					const panelCount = data.length;
 
-					// placeholder for allowing setting different cols/rows for each panel
-					// const cols = data[0].length;
-					// const rows = data[0][0].length;
+					// Get dimensions from the first frame of the first panel
+					const rowCount =
+						data[0][$currentFrame]?.length || data[0][0]?.length;
+					const colCount =
+						data[0][$currentFrame]?.[0]?.length ||
+						data[0][0]?.[0]?.length;
+					const frameCount = data[0].length;
 
-					// update matrix settings & set data
+					console.log(
+						`Detected ${frameCount} frames with dimensions: ${panelCount} panels, ${rowCount} rows, ${colCount} columns`,
+					);
+
+					// Update matrix settings
+					panels.set(panelCount);
+					panelsElement.value = panelCount.toString();
+					columns.set(colCount);
+					columnsElement.value = colCount.toString();
+					rows.set(rowCount);
+					rowsElement.value = rowCount.toString();
+
+					// Set the entire matrix data & frames
+					matrix.set(data);
+					totalFrames.set(frameCount);
+
+					// Update each panel's display
 					for (let i = 0; i < panelCount; i++) {
-						const panelCount = data.length;
-						const rowCount = data[i].length;
-						const colCount = data[i][0].length;
-
-						panels.set(panelCount);
-						panelsElement.value = panelCount.toString();
-						columns.set(colCount);
-						columnsElement.value = colCount.toString();
-						rows.set(rowCount);
-						rowsElement.value = rowCount.toString();
-
-						matrix.set(data);
-
-						// update matrix for each panel
+						// Use setTimeout to allow time for matrix to be re-rendered
 						setTimeout(() => {
-							document
-								.getElementById(`panel-${i}`)
-								?.dispatchEvent(
-									new CustomEvent("update-matrix", {
-										detail: {
-											panelData: data[i],
-										},
-									}),
+							const panel = document.getElementById(`panel-${i}`);
+							if (!panel) {
+								console.error(
+									`Could not find panel-${i} element`,
 								);
-						}, 50); // allow time for matrix to be re-rendered
+								return;
+							}
+
+							// Send the current frame's data to the panel
+							const frameData =
+								data[i][$currentFrame] || data[i][0];
+							console.log(
+								`Dispatching update-matrix event for panel ${i}, frame ${$currentFrame}`,
+							);
+
+							panel.dispatchEvent(
+								new CustomEvent("update-matrix", {
+									detail: {
+										panelData: frameData,
+									},
+								}),
+							);
+						}, 100);
 					}
 				}
 			}
@@ -97,7 +123,6 @@
 			console.error(`Failed to import data: ${err}`);
 		}
 	}
-
 	async function handleExport() {
 		try {
 			console.log("Opening file dialog for export...");
@@ -105,7 +130,27 @@
 				filters: [{ name: "JSON", extensions: ["json"] }],
 			});
 			if (filePath) {
-				const data = JSON.stringify($matrix);
+				const matrixData = $matrix.map((panel) => {
+					const paddedPanel = [...panel];
+					while (paddedPanel.length < $totalFrames) {
+						paddedPanel.push(null as unknown as LEDMatrix);
+					}
+					return paddedPanel;
+				});
+
+				const data = JSON.stringify(
+					matrixData,
+					(_, value) => {
+						if (
+							Array.isArray(value) &&
+							typeof value[0] === "number"
+						) {
+							return JSON.stringify(value);
+						}
+						return value;
+					},
+					2,
+				).replace(/"\[(.*?)\]"/g, "[$1]");
 				console.log(`Exporting data to ${filePath}`);
 				await invoke("export_data", { filePath, data });
 				console.log(`Exported data: ${data}`);

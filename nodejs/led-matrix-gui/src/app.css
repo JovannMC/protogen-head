@@ -21,21 +21,27 @@
 }
 
 body {
-	@apply bg-body text-secondary;
+	@apply bg-body text-secondary select-none;
 }
 
+select,
 input[type="text"],
 input[type="number"] {
-	@apply text-center text-black bg-tertiary rounded-md border-2 border-secondary focus:outline-none focus:ring-2 focus:ring-secondary;
+	@apply text-center text-sm text-black bg-tertiary rounded-md border-2 border-secondary focus:outline-none focus:ring-2 focus:ring-secondary;
 }
 
 input[type="text"]::placeholder,
-input[type="number"]::placeholder {
-	@apply text-black opacity-25;
+input[type="number"]::placeholder
+select::placeholder {
+	@apply text-black text-sm opacity-25;
 }
 
 .panel {
 	@apply flex flex-col items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
+}
+
+.panel-row {
+	@apply flex flex-row items-center justify-center w-full h-full bg-tertiary shadow-md rounded-lg;
 }
 
 .hoverable-sm {

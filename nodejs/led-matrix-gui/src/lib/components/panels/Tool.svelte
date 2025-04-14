@@ -8,6 +8,8 @@
 	} from "$lib/stores";
 	import { onMount } from "svelte";
 
+	let toolContainer: HTMLDivElement;
+
 	function selectTool(event: Event) {
 		const element = event.currentTarget as HTMLButtonElement;
 		const tool = element.getAttribute("aria-label") as Tool;
@@ -22,22 +24,22 @@
 
 	function validateInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		if (input.value && parseInt(input.value) < 1) input.value = "1";
+		if (input.value && +input.value < 1) input.value = "1";
 	}
 
 	function finishInput(event: Event) {
 		const input = event.target as HTMLInputElement;
-		const value = parseInt(input.value) || 1;
+		const value = +input.value || 1;
 		currentToolSize.set(value);
 	}
 
 	onMount(() => {
-		const firstTool = document.querySelector("button") as HTMLButtonElement;
-		firstTool.classList.add("selected");
+		// select first tool
+		toolContainer.querySelector("button")?.classList.add("selected");
 	});
 </script>
 
-<div class="panel flex flex-col items-center gap-4">
+<div class="panel flex flex-col items-center gap-4" bind:this={toolContainer}>
 	{#each tools as tool}
 		{@const icon =
 			tool === "line"

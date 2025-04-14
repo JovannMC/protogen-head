@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { currentColor as colorStore, defaultColors } from "$lib/stores";
+	import {
+		currentColor as colorStore,
+		currentFrame,
+		defaultColors,
+		matrix,
+	} from "$lib/stores";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
 
@@ -26,15 +31,46 @@
 	}
 
 	function clearAll() {
+		// reset all LEDs to black (0) in DOM
 		Array.from(document.getElementsByClassName("led")).forEach((led) => {
 			const color = "#000000";
 			(led as HTMLElement).style.backgroundColor = color;
 		});
+
+		// reset all pixels of current frame to black (0)
+		matrix.update((matrices) => {
+			const newMatrices = [...matrices];
+
+			for (
+				let panelIndex = 0;
+				panelIndex < newMatrices.length;
+				panelIndex++
+			) {
+				if (
+					newMatrices[panelIndex] &&
+					newMatrices[panelIndex][$currentFrame]
+				) {
+					const frameData = newMatrices[panelIndex][$currentFrame];
+
+					for (let row = 0; row < frameData.length; row++) {
+						for (let col = 0; col < frameData[row].length; col++) {
+							frameData[row][col] = 0;
+						}
+					}
+				}
+			}
+
+			return newMatrices;
+		});
+
+		console.log("All pixels cleared");
 	}
 
 	onMount(() => {
 		colorStore.subscribe((value) => {
-			const picker = document.getElementById("picker") as HTMLInputElement;
+			const picker = document.getElementById(
+				"picker",
+			) as HTMLInputElement;
 			picker.value = value;
 			if (value === "transparent") {
 				picker.classList.add("checkered-bg");
@@ -42,7 +78,7 @@
 				picker.classList.remove("checkered-bg");
 			}
 		});
-	})
+	});
 </script>
 
 <div class="panel">

@@ -1,28 +1,39 @@
 <script lang="ts">
-	import { addToHistory } from "$lib/history";
+	import { addToHistory } from "$lib/utils/history";
 	import {
 		columns,
 		rows,
 		currentColor,
 		currentTool,
-		currentToolSize,
 		matrix,
 		matrixHistory,
+		currentFrame,
+		isDrawingMatrix,
 	} from "$lib/stores";
-	import { onMount } from "svelte";
-	import { get } from "svelte/store";
+	import { onDestroy, onMount } from "svelte";
+	import {
+		floodFill,
+		drawLine,
+		drawRectangle,
+		drawEllipse,
+	} from "$lib/utils/drawing";
+	import { applyTool, getPixelCoordinates, getPixelFromCoords, rgbToHex, updateMatrixDisplay } from "$lib/utils/matrix";
 
-	// i'll be honest, i used ai for this because i wouldn't be able to figure this out because i'm dumb
+// i'll be honest, i used ai for a lot of the tool code because i wouldn't be able to figure many of the tools out because i'm dumb
 	// not like anyone else is gonna use it so.. yeah. if it works it works ig
 	// i'm sorry in advance
 	// -jovann
+
+	// 2025/03/12 update:
+	// oh my fucking god, this animation code is awful. i'm so sorry.
+	// enjoy your arrays in an array of arrays in an array of more arrays
 
 	let { index } = $props();
 
 	// makes sure tools only affect the current matrix instance
 	let matrixContainer: HTMLElement;
+	let currentFrameUnsubscribe: () => void;
 
-	let isDragging = false;
 	let tool = $currentTool;
 	let previousTool: typeof tool = $currentTool;
 	let startPixel: { row: number; col: number } | null = null;
@@ -30,9 +41,7 @@
 	let originalPixelColors = new Map<string, string>();
 
 	currentTool.subscribe((value) => {
-		if (value === "picker" && tool !== "picker") {
-			previousTool = tool;
-		}
+		if (value === "picker" && tool !== "picker") previousTool = tool;
 		tool = value;
 
 		// set the selected tool
@@ -43,27 +52,6 @@
 			.querySelector(`[aria-label="${value}"]`)
 			?.classList.add("selected");
 	});
-
-	function getPixelCoordinates(
-		element: HTMLElement,
-	): { row: number; col: number } | null {
-		// Extract row and column from dataset
-		const row = parseInt(element.dataset.row || "");
-		const col = parseInt(element.dataset.col || "");
-
-		if (isNaN(row) || isNaN(col)) return null;
-		return { row, col };
-	}
-
-	function getPixelFromCoords(row: number, col: number): HTMLElement | null {
-		return matrixContainer.querySelector(
-			`[data-row="${row}"][data-col="${col}"]`,
-		);
-	}
-
-	function setPixelColor(element: HTMLElement, color: string) {
-		element.style.backgroundColor = color;
-	}
 
 	function findNearestLedByCursor(event: MouseEvent): HTMLElement | null {
 		// Get cursor position
@@ -94,40 +82,6 @@
 		return closestLed;
 	}
 
-	function applyTool(pixel: HTMLElement, color: string) {
-		const coords = getPixelCoordinates(pixel);
-		if (!coords) return;
-
-		const { row, col } = coords;
-
-		// ensure exact tool size width/height
-		const startR = row - Math.floor(($currentToolSize - 1) / 2);
-		const endR = row + Math.floor($currentToolSize / 2);
-		const startC = col - Math.floor(($currentToolSize - 1) / 2);
-		const endC = col + Math.floor($currentToolSize / 2);
-
-		for (let r = startR; r <= endR; r++) {
-			for (let c = startC; c <= endC; c++) {
-				const targetPixel = getPixelFromCoords(r, c);
-				if (targetPixel) setPixelColor(targetPixel, color);
-				if (r >= 0 && r < $rows && c >= 0 && c < $columns) {
-					matrix.update((matrices) => {
-						if (!matrices[index]) {
-							matrices[index] = Array($rows)
-								.fill(0)
-								.map(() => Array($columns).fill(0));
-						}
-						if (!matrices[index][r]) {
-							matrices[index][r] = Array($columns).fill(0);
-						}
-						matrices[index][r][c] = parseInt(color.slice(1), 16);
-						return matrices;
-					});
-				}
-			}
-		}
-	}
-
 	function handlePixelClick(event: MouseEvent | KeyboardEvent) {
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -151,13 +105,14 @@
 
 		if (tool === "fill") {
 			const coords = getPixelCoordinates(pixel);
-			if (coords) floodFill(coords.row, coords.col, newColor);
+			if (coords)
+				floodFill(matrixContainer, coords.row, coords.col, newColor);
 			return;
 		}
 
 		if (tool === "eraser") newColor = "#000000";
 
-		applyTool(pixel, newColor);
+		applyTool(matrixContainer, pixel, newColor, index);
 	}
 
 	function handleMouseDown(event: MouseEvent) {
@@ -167,7 +122,7 @@
 			if (!pixel) return;
 		}
 
-		isDragging = true;
+		isDrawingMatrix.set(true);
 
 		const coords = getPixelCoordinates(pixel);
 		if (!coords) return;
@@ -186,7 +141,7 @@
 	}
 
 	function handleMouseMove(event: MouseEvent) {
-		if (!isDragging) return;
+		if (!$isDrawingMatrix) return;
 
 		let pixel = event.target as HTMLElement;
 		if (!pixel.classList.contains("led")) {
@@ -208,18 +163,17 @@
 			drawPreview();
 		}
 	}
+
 	const handleMouseUp = () => {
-		if (!isDragging || !startPixel || !endPixel) {
-			isDragging = false;
+		if (!$isDrawingMatrix || !startPixel || !endPixel) {
+			$isDrawingMatrix = false;
 			return;
 		}
 
 		// For shape tools, finalize the drawing
-		if (["line", "rectangle", "ellipse"].includes(tool)) {
-			applyFinalShape();
-		}
+		if (["line", "rectangle", "ellipse"].includes(tool)) applyFinalShape();
 
-		isDragging = false;
+		$isDrawingMatrix = false;
 		startPixel = null;
 		endPixel = null;
 		originalPixelColors.clear();
@@ -239,27 +193,33 @@
 		});
 
 		matrix.update((matrices) => {
-			matrices[index] = matrixData;
+			if (!matrices[index]) matrices[index] = [];
+
+			// Make sure we're updating the current frame, not replacing the entire panel data
+			matrices[index][$currentFrame] = matrixData;
+
+			console.log(`Matrix now has ${matrices[index].length} frames`);
 			return matrices;
 		});
 		matrixHistory.update((history) => {
-			history.push([index, matrixData]);
+			const currentMatrices = $matrix;
+			history.push([index, currentMatrices]);
 			return history;
 		});
 
-		addToHistory(index, get(matrix));
+		addToHistory(index, $matrix);
 	};
 
 	function restoreOriginalColors() {
 		originalPixelColors.forEach((color, key) => {
 			const [row, col] = key.split(",").map(Number);
-			const pixel = getPixelFromCoords(row, col);
+			const pixel = getPixelFromCoords(matrixContainer, row, col);
 			if (pixel) pixel.style.backgroundColor = color;
 		});
 	}
 
 	function storeOriginalColor(row: number, col: number) {
-		const pixel = getPixelFromCoords(row, col);
+		const pixel = getPixelFromCoords(matrixContainer, row, col);
 		if (!pixel) return;
 
 		const key = `${row},${col}`;
@@ -276,30 +236,36 @@
 
 		if (tool === "line") {
 			drawLine(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				true,
+				storeOriginalColor,
 			);
 		} else if (tool === "rectangle") {
 			drawRectangle(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				true,
+				storeOriginalColor,
 			);
 		} else if (tool === "ellipse") {
 			drawEllipse(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				true,
+				storeOriginalColor,
 			);
 		}
 	}
@@ -312,258 +278,38 @@
 
 		if (tool === "line") {
 			drawLine(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				false,
+				storeOriginalColor,
 			);
 		} else if (tool === "rectangle") {
 			drawRectangle(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				false,
+				storeOriginalColor,
 			);
 		} else if (tool === "ellipse") {
 			drawEllipse(
+				matrixContainer,
 				startPixel.row,
 				startPixel.col,
 				endPixel.row,
 				endPixel.col,
 				newColor,
 				false,
+				storeOriginalColor,
 			);
 		}
-	}
-
-	// Implement Bresenham's line algorithm
-	function drawLine(
-		startRow: number,
-		startCol: number,
-		endRow: number,
-		endCol: number,
-		color: string,
-		isPreview: boolean,
-	) {
-		const dx = Math.abs(endCol - startCol);
-		const dy = Math.abs(endRow - startRow);
-		const sx = startCol < endCol ? 1 : -1;
-		const sy = startRow < endRow ? 1 : -1;
-		let err = dx - dy;
-
-		let row = startRow;
-		let col = startCol;
-
-		while (true) {
-			for (
-				let r = row - Math.floor($currentToolSize / 2);
-				r <= row + Math.floor($currentToolSize / 2);
-				r++
-			) {
-				for (
-					let c = col - Math.floor($currentToolSize / 2);
-					c <= col + Math.floor($currentToolSize / 2);
-					c++
-				) {
-					const pixel = getPixelFromCoords(r, c);
-					if (pixel) {
-						if (isPreview) storeOriginalColor(r, c);
-						setPixelColor(pixel, color);
-					}
-				}
-			}
-
-			if (row === endRow && col === endCol) break;
-			const e2 = 2 * err;
-			if (e2 > -dy) {
-				err -= dy;
-				col += sx;
-			}
-			if (e2 < dx) {
-				err += dx;
-				row += sy;
-			}
-		}
-	}
-
-	function drawRectangle(
-		startRow: number,
-		startCol: number,
-		endRow: number,
-		endCol: number,
-		color: string,
-		isPreview: boolean,
-	) {
-		const minRow = Math.min(startRow, endRow);
-		const maxRow = Math.max(startRow, endRow);
-		const minCol = Math.min(startCol, endCol);
-		const maxCol = Math.max(startCol, endCol);
-
-		// Draw the four edges of the rectangle
-		for (let row = minRow; row <= maxRow; row++) {
-			for (let col = minCol; col <= maxCol; col++) {
-				// Only draw the border
-				if (
-					row === minRow ||
-					row === maxRow ||
-					col === minCol ||
-					col === maxCol
-				) {
-					for (
-						let r = row - Math.floor($currentToolSize / 2);
-						r <= row + Math.floor($currentToolSize / 2);
-						r++
-					) {
-						for (
-							let c = col - Math.floor($currentToolSize / 2);
-							c <= col + Math.floor($currentToolSize / 2);
-							c++
-						) {
-							const pixel = getPixelFromCoords(r, c);
-							if (pixel) {
-								if (isPreview) storeOriginalColor(r, c);
-								setPixelColor(pixel, color);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	function drawEllipse(
-		startRow: number,
-		startCol: number,
-		endRow: number,
-		endCol: number,
-		color: string,
-		isPreview: boolean,
-	) {
-		const centerRow = (startRow + endRow) / 2;
-		const centerCol = (startCol + endCol) / 2;
-		const radiusRow = Math.abs(endRow - startRow) / 2;
-		const radiusCol = Math.abs(endCol - startCol) / 2;
-
-		// Adjust step size based on ellipse size to avoid too many points
-		const circumference =
-			2 *
-			Math.PI *
-			Math.sqrt((radiusRow * radiusRow + radiusCol * radiusCol) / 2);
-		const step = Math.max(0.01, Math.min(0.2, 1 / circumference));
-
-		// Track which pixels we've already processed to avoid redundant operations
-		const processedPixels = new Set<string>();
-
-		// Using parametric form of ellipse to get points
-		for (let theta = 0; theta < 2 * Math.PI; theta += step) {
-			const row = Math.round(centerRow + radiusRow * Math.sin(theta));
-			const col = Math.round(centerCol + radiusCol * Math.cos(theta));
-
-			if (row >= 0 && row < $rows && col >= 0 && col < $columns) {
-				// Apply tool size properly - for size 1, only color the exact point
-				// For size > 1, create an appropriate radius
-				const offset = Math.floor(($currentToolSize - 1) / 2);
-
-				for (let r = row - offset; r <= row + offset; r++) {
-					for (let c = col - offset; c <= col + offset; c++) {
-						// Skip if outside the matrix or already processed
-						if (r < 0 || r >= $rows || c < 0 || c >= $columns)
-							continue;
-
-						const key = `${r},${c}`;
-						if (processedPixels.has(key)) continue;
-						processedPixels.add(key);
-
-						const pixel = getPixelFromCoords(r, c);
-						if (pixel) {
-							if (isPreview) storeOriginalColor(r, c);
-							setPixelColor(pixel, color);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	function floodFill(row: number, col: number, newColor: string) {
-		const pixel = getPixelFromCoords(row, col);
-		if (!pixel) return;
-
-		const targetColor = window.getComputedStyle(pixel).backgroundColor;
-		if (rgbToHex(targetColor) === newColor) return;
-
-		const queue: [number, number][] = [[row, col]];
-		const visited = new Set<string>();
-
-		while (queue.length > 0) {
-			const [r, c] = queue.shift()!;
-			const key = `${r},${c}`;
-
-			if (visited.has(key)) continue;
-			visited.add(key);
-
-			const currentPixel = getPixelFromCoords(r, c);
-			if (!currentPixel) continue;
-
-			const currentColor =
-				window.getComputedStyle(currentPixel).backgroundColor;
-			if (rgbToHex(currentColor) !== rgbToHex(targetColor)) continue;
-
-			setPixelColor(currentPixel, newColor);
-
-			// Add adjacent pixels to queue
-			if (r > 0) queue.push([r - 1, c]);
-			if (r < $rows - 1) queue.push([r + 1, c]);
-			if (c > 0) queue.push([r, c - 1]);
-			if (c < $columns - 1) queue.push([r, c + 1]);
-		}
-	}
-
-	function rgbToHex(rgb: string): string {
-		if (!rgb || rgb === "transparent") return "transparent";
-
-		const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-		if (!match) return rgb;
-
-		const r = parseInt(match[1]);
-		const g = parseInt(match[2]);
-		const b = parseInt(match[3]);
-
-		return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-	}
-
-	function updateMatrixDisplay(panelData: number[][]) {
-		const matrixData = Array.from({ length: $rows }, () =>
-			Array($columns).fill(0),
-		);
-		const leds = matrixContainer.querySelectorAll<HTMLElement>(".led");
-
-		leds.forEach((led, i) => {
-			// reset to default color
-			led.style.backgroundColor = "#000000";
-
-			const col = i % $columns;
-			const row = Math.floor(i / $columns);
-
-			if (row < panelData.length && col < panelData[row].length) {
-				const color = panelData[row][col];
-				let hexString = color.toString(16);
-				while (hexString.length < 6) hexString = "0" + hexString;
-				const hexColor = color === 0 ? "#000000" : `#${hexString}`;
-
-				led.style.backgroundColor = hexColor;
-				matrixData[row][col] = color;
-			}
-		});
-
-		matrix.update((matrices) => {
-			matrices[index] = matrixData;
-			return matrices;
-		});
 	}
 
 	onMount(() => {
@@ -575,8 +321,47 @@
 					panelData: number[][];
 				}>;
 				const panelData = customEvent.detail.panelData;
-				updateMatrixDisplay(panelData);
+				updateMatrixDisplay(matrixContainer, panelData, index, false);
 			});
+
+		currentFrameUnsubscribe = currentFrame.subscribe((frame) => {
+			console.log(`Switching to frame ${frame}`);
+
+			if ($matrix[index]) {
+				if ($matrix[index][frame]) {
+					updateMatrixDisplay(matrixContainer, $matrix[index][frame], index, false);
+				} else {
+					const emptyFrame = Array.from({ length: $rows }, () =>
+						Array($columns).fill(0),
+					);
+
+					matrix.update((matrices) => {
+						if (!matrices[index]) matrices[index] = [];
+						matrices[index][frame] = emptyFrame;
+						return matrices;
+					});
+
+					updateMatrixDisplay(matrixContainer, emptyFrame, index, false);
+				}
+			} else {
+				// Handle case where panel doesn't exist
+				const emptyFrame = Array.from({ length: $rows }, () =>
+					Array($columns).fill(0),
+				);
+
+				matrix.update((matrices) => {
+					matrices[index] = [];
+					matrices[index][frame] = emptyFrame;
+					return matrices;
+				});
+
+				updateMatrixDisplay(matrixContainer, emptyFrame, index, false);
+			}
+		});
+	});
+
+	onDestroy(() => {
+		if (currentFrameUnsubscribe) currentFrameUnsubscribe();
 	});
 </script>
 

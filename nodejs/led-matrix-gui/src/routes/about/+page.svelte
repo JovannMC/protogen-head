@@ -22,8 +22,8 @@
 							"https://github.com/JovannMC/protogen-head/tree/main/nodejs/led-matrix-gui",
 						)}>LED Matrix GUI</a
 				>
-				is a powerful tool to easily visualize and create designs and (soon)
-				animations. It is a part of the
+				is a powerful tool to easily visualize and create designs & animations.
+				It is a part of the
 				<a
 					class="cursor-pointer text-blue-600 underline"
 					onclick={() =>
@@ -121,6 +121,6 @@
 	}
 
 	.container {
-		@apply flex flex-col items-center justify-center gap-2;
+		@apply flex flex-col items-center justify-center gap-2 select-text;
 	}
 </style>
