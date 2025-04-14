@@ -34,6 +34,7 @@ export const totalFrames = writable(120);
 export const selectedFPS = writable(30);
 export const interpolate = writable(true);
 export const interpolationType: Writable<Interpolation> = writable("ease");
+export const selectedPanel = writable(0);
 
 export type LEDMatrix = number[][]; // A single 2D grid of LEDs
 export type PanelFrames = LEDMatrix[]; // All frames for a single panel

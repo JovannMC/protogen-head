@@ -4,6 +4,8 @@
 		currentFrame,
 		defaultColors,
 		matrix,
+		panels,
+		selectedPanel,
 	} from "$lib/stores";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
@@ -28,6 +30,81 @@
 		const color = (event.target as HTMLInputElement).value;
 		console.log(`Picker color changed: ${color}`);
 		colorStore.set(color);
+	}
+
+	function mirrorX() {
+		matrix.update((matrices) => {
+			const newMatrices = [...matrices];
+
+			for (
+				let panelIndex = 0;
+				panelIndex < newMatrices.length;
+				panelIndex++
+			) {
+				if (
+					newMatrices[panelIndex] &&
+					newMatrices[panelIndex][$currentFrame]
+				) {
+					const frameData = newMatrices[panelIndex][$currentFrame];
+
+					for (let row = 0; row < frameData.length; row++) {
+						frameData[row] = frameData[row].slice().reverse();
+					}
+
+					document
+						.getElementById(`panel-${panelIndex}`)
+						?.dispatchEvent(
+							new CustomEvent("update-matrix", {
+								detail: {
+									panelData: frameData,
+								},
+							}),
+						);
+				}
+			}
+
+			return newMatrices;
+		});
+
+		console.log("Mirrored horizontally (X axis)");
+	}
+
+	function mirrorY() {
+		matrix.update((matrices) => {
+			const newMatrices = [...matrices];
+
+			for (
+				let panelIndex = 0;
+				panelIndex < newMatrices.length;
+				panelIndex++
+			) {
+				if (
+					newMatrices[panelIndex] &&
+					newMatrices[panelIndex][$currentFrame]
+				) {
+					const frameData = newMatrices[panelIndex][$currentFrame];
+
+					newMatrices[panelIndex][$currentFrame] = frameData
+						.slice()
+						.reverse();
+
+					document
+						.getElementById(`panel-${panelIndex}`)
+						?.dispatchEvent(
+							new CustomEvent("update-matrix", {
+								detail: {
+									panelData:
+										newMatrices[panelIndex][$currentFrame],
+								},
+							}),
+						);
+				}
+			}
+
+			return newMatrices;
+		});
+
+		console.log("Mirrored vertically (Y axis)");
 	}
 
 	function clearAll() {
@@ -111,6 +188,32 @@
 		>
 			<Icon icon="bi:trash" class="text-red-400 w-3/4 h-3/4" />
 		</button>
+
+		<button
+			class="flex-1 bg-secondary rounded-lg flex items-center justify-center hoverable p-1"
+			onclick={mirrorX}
+			aria-label="Mirror X"
+		>
+			<Icon icon="mdi:flip-horizontal" class="text-black" width="24" />
+		</button>
+
+		<button
+			class="flex-1 bg-secondary rounded-lg flex items-center justify-center hoverable p-1"
+			onclick={mirrorY}
+			aria-label="Mirror Y"
+		>
+			<Icon icon="mdi:flip-vertical" class="text-black" width="24" />
+		</button>
+
+		<select
+			class="w-full bg-secondary rounded p-1 text-xs text-white"
+			bind:value={$selectedPanel}
+		>
+			<option value={-1}>All Panels</option>
+			{#each Array($panels) as _, i}
+				<option value={i}>Panel {i + 1}</option>
+			{/each}
+		</select>
 	</div>
 </div>
 
