@@ -15,6 +15,9 @@
 	// TODO: click and drag keyframes to move (or select multiple to delete)
 	// TODO: duplicate keyframes (right click menu)
 	// TODO: popup/toast system
+	// TODO: click and drag to select what to copy (prob hold ctrl or shift)
+	// TODO: fix disabling interpolation, not turning it off
+	// either when disabling, clearing all interpolated frames or somehow make it easier idk
 
 	let isPlaying = false;
 	let isLooping = true;
@@ -22,7 +25,6 @@
 	let animationInterval: ReturnType<typeof setInterval>;
 	let isDragging = false;
 	let previousKeyframes: Record<number, string> = {};
-
 	let lastClickTime: Record<string, number | null> = {};
 
 	function addKeyframe() {
