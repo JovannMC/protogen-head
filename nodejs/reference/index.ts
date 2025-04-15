@@ -2,11 +2,18 @@ import { LedMatrix, GpioMapping } from "rpi-led-matrix";
 import { readFileSync } from "fs";
 import { join } from "path";
 
+let currentFrame = 0;
+let intervalId: NodeJS.Timer | null = null;
+
 /*
  * Main settings
  */
 const LAYOUT_FILE = join(__dirname, "panels.json");
-const chainType: ChainType = "horizontal";
+const CHAIN_LENGTH = 1;
+const CHAIN_TYPE: ChainType = "horizontal";
+const FPS = 30;
+const MIRROR_X = true;
+const MIRROR_Y = true;
 
 async function main() {
 	try {
@@ -15,57 +22,91 @@ async function main() {
 				...LedMatrix.defaultMatrixOptions(),
 				cols: 64,
 				rows: 32,
-				chainLength: 1,
+				chainLength: CHAIN_LENGTH,
 				hardwareMapping: GpioMapping.AdafruitHat,
 				showRefreshRate: true,
 			},
 			{
 				...LedMatrix.defaultRuntimeOptions(),
-				// can any between really, but higher = slower refresh rate, but better for lower current power banks if using most of display(s)
+				// can be any between really, but higher = slower refresh rate, but better for lower current power banks if using most of leds in display(s)
 				gpioSlowdown: 1,
 			},
 		);
 
 		console.log(`Loading data from: ${LAYOUT_FILE}`);
-		const panelLayout: PanelLayout = JSON.parse(
+		const animationData: PanelLayout[] = JSON.parse(
 			readFileSync(LAYOUT_FILE, "utf-8"),
 		);
-		console.log(`Loaded data for ${panelLayout.length} panels`);
 
-		const rowsPerPanel = panelLayout[0].length;
-		const colsPerPanel = panelLayout[0][0].length;
+		// Check data structure
+		if (!Array.isArray(animationData) || !Array.isArray(animationData[0])) {
+			throw new Error("Invalid animation data format");
+		}
+
+		const totalPanels = animationData.length;
+		const totalFrames = animationData[0].length;
+
+		console.log(
+			`Loaded animation with ${totalFrames} frames for ${totalPanels} panels`,
+		);
+
+		const rowsPerPanel = animationData[0][0].length;
+		const colsPerPanel = animationData[0][0][0].length;
 		console.log(`Panel dimensions: ${colsPerPanel}x${rowsPerPanel}`);
 
-		matrix.clear();
+		// Start animation loop
+		intervalId = setInterval(() => {
+			matrix.clear();
 
-		// Render data on each matrix
-		panelLayout.forEach((panel, panelIndex) => {
-			// Calculate panel offset in chain
-			const panelXOffset =
-				chainType === "horizontal" ? panelIndex * colsPerPanel : 0;
-			const panelYOffset =
-				chainType === "vertical" ? panelIndex * rowsPerPanel : 0;
+			// Render current frame on each panel
+			animationData.forEach((panel, panelIndex) => {
+				const frameData = panel[currentFrame];
 
-			panel.forEach((row, y) => {
-				row.forEach((colorInt, x) => {
-					if (colorInt !== 0) {
-						const r = (colorInt >> 16) & 0xff;
-						const g = (colorInt >> 8) & 0xff;
-						const b = colorInt & 0xff;
+				// Calculate panel offset in chain
+				let panelXOffset = 0;
+				let panelYOffset = 0;
+				if (CHAIN_LENGTH) {
+					panelXOffset =
+						CHAIN_TYPE === "horizontal"
+							? panelIndex * colsPerPanel
+							: 0;
+					panelYOffset =
+						CHAIN_TYPE === "vertical"
+							? panelIndex * rowsPerPanel
+							: 0;
+				}
 
-						matrix
-							.fgColor({ r, g, b })
-							.setPixel(panelXOffset + x, panelYOffset + y);
-					}
+				frameData.forEach((row, y) => {
+					row.forEach((colorInt, x) => {
+						let mirroredX = MIRROR_X ? colsPerPanel - 1 - x : x;
+						let mirroredY = MIRROR_Y ? rowsPerPanel - 1 - y : y;
+						if (colorInt !== 0) {
+							const r = (colorInt >> 16) & 0xff;
+							const g = (colorInt >> 8) & 0xff;
+							const b = colorInt & 0xff;
+
+							matrix
+								.fgColor({ r, g, b })
+								.setPixel(
+									panelXOffset + mirroredX,
+									panelYOffset + mirroredY,
+								);
+						}
+					});
 				});
 			});
-		});
 
-		matrix.sync();
+			matrix.sync();
+
+			// Update frame counter
+			currentFrame = (currentFrame + 1) % totalFrames;
+		}, 1000 / FPS);
+
 		process.stdin.resume();
 
 		process.on("SIGINT", () => {
 			console.log("Shutting down...");
+			if (intervalId) clearInterval(intervalId);
 			matrix.clear();
 			matrix.sync();
 			process.exit(0);
