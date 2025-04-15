@@ -10,6 +10,7 @@
 		type MatrixData,
 		totalFrames,
 		type LEDMatrix,
+		type PanelFrames,
 	} from "$lib/stores";
 	import { invoke } from "@tauri-apps/api/core";
 	import { open, save } from "@tauri-apps/plugin-dialog";
@@ -111,6 +112,7 @@
 			console.error(`Failed to import data: ${err}`);
 		}
 	}
+
 	async function handleExport() {
 		try {
 			console.log("Opening file dialog for export...");
@@ -139,7 +141,6 @@
 					},
 					2,
 				).replace(/"\[(.*?)\]"/g, "[$1]");
-				console.log(`Exporting data to ${filePath}`);
 				await invoke("export_data", { filePath, data });
 				console.log(`Exported data: ${data}`);
 			}
@@ -166,74 +167,130 @@
 				console.log(`Importing image from ${filePath}`);
 
 				const binary = await readFile(filePath as string);
-				console.log(`Read binary file, length: ${binary.length}`);
-
-				const ext = (filePath as string).split(".").pop();
+				const ext = (filePath as string)
+					.split(".")
+					.pop()
+					?.toLowerCase();
 				const base64Data = `data:image/${ext};base64,${btoa(String.fromCharCode(...binary))}`;
-				console.log(
-					`Generated base64Data (first 100 chars): ${base64Data.slice(0, 100)}`,
-				);
 
 				try {
-					console.log(
-						`Calling decode_image with panels: ${$panels}, rows: ${$rows}, cols: ${$columns}`,
-					);
-					const panelsData = await invoke("decode_image", {
-						base64Data,
-						panelCount: $panels,
-						rows: $rows,
-						cols: $columns,
-					});
+					let panelsData;
+					if (ext === "gif") {
+						console.log("Detected GIF, using decode_gif");
+						panelsData = await invoke("decode_gif", {
+							base64Data,
+							panelCount: $panels,
+							rows: $rows,
+							cols: $columns,
+						});
+					} else {
+						panelsData = await invoke("decode_image", {
+							base64Data,
+							panelCount: $panels,
+							rows: $rows,
+							cols: $columns,
+						});
+					}
 
 					const data = JSON.parse(panelsData as string);
 					console.log(
 						`Parsed data: ${JSON.stringify(data).slice(0, 200)}`,
 					);
 
-					// convert from RGB to the custom format
-					const convertedData = data.map((panel: LEDMatrix) => {
-						return panel.map((row) => {
-							return row.map((pixel) => {
-								if (
-									Array.isArray(pixel) &&
-									pixel.length === 3
-								) {
-									const [r, g, b] = pixel;
-									return (r << 16) | (g << 8) | b;
+					if (ext === "gif") {
+						matrix.update((existingMatrix) => {
+							const newMatrix = [...existingMatrix];
+							for (let i = 0; i < $panels; i++) {
+								newMatrix[i] = [];
+								for (let f = 0; f < data.length; f++) {
+									const frame = data[f][i] as LEDMatrix;
+									const convertedFrame = frame.map((row) =>
+										row.map((pixel) => {
+											if (
+												Array.isArray(pixel) &&
+												pixel.length === 3
+											) {
+												const [r, g, b] = pixel;
+												return (r << 16) | (g << 8) | b;
+											}
+											return pixel;
+										}),
+									);
+									newMatrix[i][f] = convertedFrame;
 								}
-								return pixel;
+							}
+							// set frames to gif frame count
+							totalFrames.set(data.length);
+							return newMatrix;
+						});
+						// update displays for each panel for current frame
+						setTimeout(() => {
+							for (let i = 0; i < $panels; i++) {
+								const panel = document.getElementById(
+									`panel-${i}`,
+								);
+								if (!panel) {
+									console.error(
+										`Could not find panel-${i} element`,
+									);
+									continue;
+								}
+								panel.dispatchEvent(
+									new CustomEvent("update-matrix", {
+										detail: {
+											panelData: data[$currentFrame]?.[i],
+										},
+									}),
+								);
+							}
+						}, 100);
+					} else {
+						const convertedData = data.map((panel: LEDMatrix) => {
+							return panel.map((row) => {
+								return row.map((pixel) => {
+									if (
+										Array.isArray(pixel) &&
+										pixel.length === 3
+									) {
+										const [r, g, b] = pixel;
+										return (r << 16) | (g << 8) | b;
+									}
+									return pixel;
+								});
 							});
 						});
-					});
 
-					matrix.update((existingMatrix) => {
-						const newMatrix = [...existingMatrix];
-						for (let i = 0; i < $panels; i++) {
-							if (!newMatrix[i]) newMatrix[i] = [];
-							newMatrix[i][$currentFrame] = convertedData[i];
-						}
-						return newMatrix;
-					});
-
-					// update displays for each panel
-					setTimeout(() => {
-						for (let i = 0; i < $panels; i++) {
-							const panel = document.getElementById(`panel-${i}`);
-							if (!panel) {
-								console.error(
-									`Could not find panel-${i} element`,
-								);
-								continue;
+						matrix.update((existingMatrix) => {
+							const newMatrix = [...existingMatrix];
+							for (let i = 0; i < $panels; i++) {
+								if (!newMatrix[i]) newMatrix[i] = [];
+								newMatrix[i][$currentFrame] = convertedData[i];
 							}
-							panel.dispatchEvent(
-								new CustomEvent("update-matrix", {
-									detail: {
-										panelData: convertedData[i],
-									},
-								}),
-							);
-						}
-					}, 100);
+							return newMatrix;
+						});
+
+						// update displays for each panel
+						setTimeout(() => {
+							for (let i = 0; i < $panels; i++) {
+								const panel = document.getElementById(
+									`panel-${i}`,
+								);
+								if (!panel) {
+									console.error(
+										`Could not find panel-${i} element`,
+									);
+									continue;
+								}
+								panel.dispatchEvent(
+									new CustomEvent("update-matrix", {
+										detail: {
+											panelData: convertedData[i],
+										},
+									}),
+								);
+							}
+						}, 100);
+					}
 				} catch (err) {
 					console.error(`Failed to decode image: ${err}`);
 				}

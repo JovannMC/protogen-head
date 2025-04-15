@@ -18,6 +18,8 @@
 	// TODO: click and drag to select what to copy (prob hold ctrl or shift)
 	// TODO: fix disabling interpolation, not turning it off
 	// either when disabling, clearing all interpolated frames or somehow make it easier idk
+	// TODO: if importing, keyframes should be added (i forgot to do that, need to save it in the file - maybe add a boolean to the frame?)
+	// TODO: or... just save "metadata" at the beginning/end of file (like a json object) and then parse it when importing
 
 	let isPlaying = false;
 	let isLooping = true;
