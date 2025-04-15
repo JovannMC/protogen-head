@@ -1,6 +1,7 @@
 import { LedMatrix, GpioMapping } from "rpi-led-matrix";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 let currentFrame = 0;
 let intervalId: NodeJS.Timer | null = null;
@@ -8,11 +9,13 @@ let intervalId: NodeJS.Timer | null = null;
 /*
  * Main settings
  */
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const LAYOUT_FILE = join(__dirname, "panels.json");
-const CHAIN_LENGTH = 1;
+const CHAIN_LENGTH = 2;
 const CHAIN_TYPE: ChainType = "horizontal";
 const FPS = 30;
-const MIRROR_X = true;
+const MIRROR_X = false;
 const MIRROR_Y = true;
 
 async function main() {
@@ -25,6 +28,7 @@ async function main() {
 				chainLength: CHAIN_LENGTH,
 				hardwareMapping: GpioMapping.AdafruitHat,
 				showRefreshRate: true,
+				limitRefreshRateHz: 100
 			},
 			{
 				...LedMatrix.defaultRuntimeOptions(),
@@ -74,6 +78,11 @@ async function main() {
 						CHAIN_TYPE === "vertical"
 							? panelIndex * rowsPerPanel
 							: 0;
+				}
+
+				if (!frameData) {
+					matrix.clear();
+					return;
 				}
 
 				frameData.forEach((row, y) => {
