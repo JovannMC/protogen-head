@@ -1,7 +1,9 @@
 import { LedMatrix, GpioMapping } from "rpi-led-matrix";
 import { readFileSync } from "fs";
-import { join, dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { readdirSync } from "fs";
+import readline from "readline";
 
 let currentFrame = 0;
 let intervalId: NodeJS.Timeout | null = null;
@@ -11,12 +13,74 @@ let intervalId: NodeJS.Timeout | null = null;
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const LAYOUT_FILE = join(__dirname, "protogen.json");
-const FPS = 30;
+const LAYOUT_FILE_PROMISE = promptForJsonFile();
 const CHAIN_LENGTH = 2;
 const CHAIN_TYPE: ChainType = "horizontal";
-const MIRROR_X = false;
-const MIRROR_Y = true;
+const fileName = await LAYOUT_FILE_PROMISE;
+const LAYOUT_FILE = join(__dirname, fileName);
+const settings = parseSettingsFromFileName(fileName);
+
+const FPS = settings.fps ?? 30;
+const MIRROR_X = settings.mirrorX ?? false;
+const MIRROR_Y = settings.mirrorY ?? true;
+
+function parseSettingsFromFileName(fileName: string) {
+	// Example: (name)--(fps)_mirrorX_mirrorY.json
+	const base = fileName.replace(/\.json$/, "");
+	const parts = base.split("--");
+	if (parts.length < 2) return {};
+
+	const settingsPart = parts[1];
+	const [fpsStr, mirrorXStr, mirrorYStr] = settingsPart.split("_");
+
+	const parsed: { fps?: number; mirrorX?: boolean; mirrorY?: boolean } = {};
+
+	if (fpsStr && !isNaN(Number(fpsStr))) parsed.fps = Number(fpsStr);
+	if (mirrorXStr === "true" || mirrorXStr === "false")
+		parsed.mirrorX = mirrorXStr === "true";
+	if (mirrorYStr === "true" || mirrorYStr === "false")
+		parsed.mirrorY = mirrorYStr === "true";
+
+	return parsed;
+}
+
+function promptForJsonFile(): Promise<string> {
+	const files = readdirSync(__dirname)
+		.filter(
+			(f) =>
+				f.endsWith(".json") &&
+				![
+					"tsconfig.json",
+					"package.json",
+					"package-lock.json",
+				].includes(f),
+		)
+		.sort();
+	if (!files.length) throw new Error("No JSON files found in directory.");
+
+	console.log("Available JSON files:");
+	files.forEach((file, idx) => {
+		const base = file.replace(/\.json$/, "");
+		const name = base.split("--")[0]; // Only show name before settings
+		console.log(`${idx + 1}: ${name}`);
+	});
+
+	return new Promise((resolve) => {
+		const rl = readline.createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+		rl.question("Select a file by number: ", (answer) => {
+			const idx = parseInt(answer, 10) - 1;
+			if (isNaN(idx) || idx < 0 || idx >= files.length) {
+				console.log("Invalid selection.");
+				process.exit(1);
+			}
+			rl.close();
+			resolve(files[idx]);
+		});
+	});
+}
 
 async function main() {
 	try {
@@ -28,7 +92,7 @@ async function main() {
 				chainLength: CHAIN_LENGTH,
 				hardwareMapping: GpioMapping.AdafruitHat,
 				showRefreshRate: true,
-				limitRefreshRateHz: 100
+				limitRefreshRateHz: 100,
 			},
 			{
 				...LedMatrix.defaultRuntimeOptions(),
