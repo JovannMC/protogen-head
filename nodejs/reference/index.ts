@@ -28,7 +28,7 @@ async function main() {
 				chainLength: CHAIN_LENGTH,
 				hardwareMapping: GpioMapping.AdafruitHat,
 				showRefreshRate: true,
-				limitRefreshRateHz: 100
+				limitRefreshRateHz: 100,
 			},
 			{
 				...LedMatrix.defaultRuntimeOptions(),
@@ -114,12 +114,21 @@ async function main() {
 		process.stdin.resume();
 
 		process.on("SIGINT", () => {
-			console.log("Shutting down...");
+			console.log("Shutting down (SIGINT)...");
+			cleanupAndExit();
+		});
+
+		process.on("SIGTERM", () => {
+			console.log("Shutting down (SIGTERM)...");
+			cleanupAndExit();
+		});
+
+		function cleanupAndExit() {
 			if (intervalId) clearInterval(intervalId);
 			matrix.clear();
 			matrix.sync();
 			process.exit(0);
-		});
+		}
 	} catch (err) {
 		console.error(`Error: ${err}`);
 		process.exit(1);
