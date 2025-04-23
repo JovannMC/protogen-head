@@ -176,3 +176,6 @@ python/.pypirc
 node_modules
 
 .svelte-kit
+
+nodejs/reference/*.json
+nodejs/**/*.h264
